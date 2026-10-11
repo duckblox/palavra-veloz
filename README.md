@@ -1,6 +1,6 @@
-# 🤖 Corrida Palavras
+# 🤖 Palavra Veloz
 
-## ▶️ [**JOGAR AGORA → duckblox.github.io/corrida-palavras**](https://duckblox.github.io/corrida-palavras/)
+## ▶️ [**JOGAR AGORA → duckblox.github.io/palavra-veloz**](https://duckblox.github.io/palavra-veloz/)
 
 ## 🔍 Curiosidade
 
