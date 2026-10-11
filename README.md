@@ -1,4 +1,3 @@
-[README.md](https://github.com/user-attachments/files/33314649/README.md)
 # 🏃 Palavra Veloz
 
 > **Digite rápido. Corra mais rápido ainda.**
