@@ -1,3 +1,4 @@
+[README.md](https://github.com/user-attachments/files/33314649/README.md)
 # 🏃 Palavra Veloz
 
 > **Digite rápido. Corra mais rápido ainda.**
@@ -15,7 +16,7 @@ Um jogo de corrida em 3D para brincar de aprender palavras: corra por mundos sec
 2. Uma **barreira de energia** aparece com uma palavra. Digite a palavra (sem Enter!) e a barreira explode. Letra errada? A palavra só treme, sem castigo.
 3. Se a barreira te alcançar antes de você terminar, o corredor tropeça e perde velocidade. Não existe "fim de jogo", e a palavra volta mais tarde para você tentar de novo.
 4. A cada 8 desafios surge um **portal gigante** com uma palavra mais longa. O corredor espera diante dele até você digitá-la. Aí a porta se abre e você entra em um **novo mundo**.
-5. Apanhe moedas, desvie dos blocos vermelhos e tente bater o seu recorde.
+5. Apanhe moedas, desvie dos blocos vermelhos (ou explodi-os com **ENTER**) e tente bater o seu recorde.
 
 ## ⌨️ Controles
 | Tecla | O que faz |
@@ -24,6 +25,7 @@ Um jogo de corrida em 3D para brincar de aprender palavras: corra por mundos sec
 | **← →** ou **1** / **0** | trocam de faixa (**1** = esquerda, **0** = direita, perto das teclas de digitar) |
 | **↑** ou **espaço** | pula |
 | **↓** | desliza (e, no ar, desce mais rápido) |
+| **ENTER** | lança uma 💣 bomba no bloco vermelho mais próximo à frente, em qualquer pista (gasta 1 bomba do estoque) |
 | **🎵 / 🔊 / 🗣️** | ligam e desligam a música, os efeitos sonoros e a voz que lê o significado das palavras |
 
 ## 🌎 Os mundos
@@ -31,7 +33,8 @@ Um jogo de corrida em 3D para brincar de aprender palavras: corra por mundos sec
 
 ## 🎁 Surpresas pelo caminho
 - **Baús dourados**: digite a palavra para abrir e ganhar um prêmio sorteado (turbo, chuva de moedas, chuva de meteoros ou câmera lenta).
-- **Combo**: a cada 5 palavras seguidas, o corredor entra em modo turbo.
+- **Combo**: a cada 5 palavras seguidas, o corredor entra em modo turbo e ganha +1 bomba.
+- **Bombas** 💣: você começa com 3 (máximo 9). Abrir um portal dá +2, abrir um baú dá +1. A bomba só destrói blocos vermelhos: as barreiras com palavras e os portais continuam precisando ser digitados.
 - **Velocímetro**: mostra quantas palavras por minuto você digita. A velocidade do corredor cresce junto, e o **recorde** fica salvo.
 
 ## 💡 O que se aprende jogando
@@ -61,7 +64,8 @@ Procure os comentários **MUDE AQUI** no código, troque um valor, salve e recar
 2. Em `update`, troque a velocidade inicial `15`. Fica mais fácil ou mais difícil?
 3. Em `spawnT`, troque `tgtN >= 8` por `4`: os portais aparecem mais cedo.
 4. Em `pickWord`, mude os tamanhos das palavras de cada nível.
-5. Em `TH`, mude as cores de um mundo, ou **crie um quinto mundo** copiando um bloco.
+5. Em `PARTE 6`, troque `bombs = 3` para começar com mais (ou menos) bombas.
+6. Em `TH`, mude as cores de um mundo, ou **crie um quinto mundo** copiando um bloco.
 
 ## ⚠️ Avisos
 **Para quem joga:** o jogo é rápido e colorido. Faça pausas, beba água e brinque também fora da tela.
@@ -71,7 +75,7 @@ Procure os comentários **MUDE AQUI** no código, troque um valor, salve e recar
 - O jogo **não coleta dados**. O único dado guardado é o **recorde de palavras por minuto**, no navegador do próprio aparelho (`localStorage`). Se os dados do navegador forem apagados, o recorde se perde.
 - Ao abrir, o navegador baixa a biblioteca Three.js do serviço `cdnjs.cloudflare.com`. É um pedido normal de um arquivo de código, sem envio de dados do jogador.
 - **Estímulos visuais e sonoros:** há um clarão branco rápido (cerca de 1 segundo) ao trocar de mundo, linhas de velocidade e efeitos de explosão. Pessoas sensíveis à luz, ou que se sobrecarregam com facilidade, devem jogar com atenção e parar se sentirem desconforto. A **música e a voz começam desligadas**, e os efeitos sonoros podem ser desligados no botão 🔊.
-- **Voz (opcional):** o botão 🗣️ usa a síntese de fala do navegador ou do sistema para ler o significado das palavras. Em alguns navegadores, certas vozes funcionam pela internet; se isso for um problema, deixe o botão desligado (é o padrão).
+- **Voz (opcional):** o botão 🗣️ usa a síntese de fala do navegador ou do sistema para ler o significado das palavras. Em alguns navegadores, certas vozes funcionam pela internet; se isso for um problema, deixe o botão desligado (é o padrão). O jogo escolhe a melhor voz em português instalada (de preferência pt-BR). Se não houver nenhuma, ele avisa e mantém a voz desligada. Para instalar uma, procure nas configurações do sistema (o caminho exato varia com a versão): no Windows, Hora e idioma → Fala (adicionar vozes em Português do Brasil; o Edge costuma ter as melhores); no Mac, Acessibilidade → Conteúdo Falado; no Android, os Serviços de fala do Google.
 - Errar não tem punição forte: o jogo foi pensado para ser jogado sem pressão. Mesmo assim, combine um tempo de tela e jogue junto por alguns minutos, conversando sobre as palavras novas.
 
 ## 🧩 Tecnologias e créditos
