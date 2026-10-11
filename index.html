@@ -95,31 +95,19 @@
         animation: sh .25s;
       }
 
-      /* ✨ A palavra completa "estoura" na tela por 0,7 s (veja popWord no JavaScript). */
-      #ok {
-        position: absolute;
-        left: 0;
-        right: 0;
-        top: 100%;
-        font-size: clamp(22px,4.5vw,34px);
-        font-weight: 800;
-        letter-spacing: .12em;
-        opacity: 0;
-        text-shadow: 0 0 14px currentColor,0 0 4px #000;
+      /* 💣 O contador (moedas, bombas, palavras) "pula" quando você ganha bombas (veja addBombs). */
+      #meta {
+        transform-origin: left center;
       }
 
-      #ok.on {
-        animation: pop .7s ease-out;
+      #meta.pulse {
+        animation: bump .6s;
       }
 
-      @keyframes pop {
-        0% {
-          opacity: 1;
-          transform: scale(1);
-        }
-        100% {
-          opacity: 0;
-          transform: translateY(14px) scale(1.5);
+      @keyframes bump {
+        50% {
+          transform: scale(1.3);
+          color: #ffd24a;
         }
       }
 
@@ -303,7 +291,7 @@
         Corra por mundos secretos. <b>Digite as palavras</b> que aparecem para destruir barreiras,
         abrir portais e descobrir surpresas. Quanto mais rápido você digita, mais rápido você corre.
       </p>
-      <p style="font-size: 14px; opacity: 0.7">← → (ou 1 e 0) trocam de pista · ↑ ou espaço pula · ↓ desliza</p>
+      <p style="font-size: 14px; opacity: 0.7">← → (ou 1 e 0) trocam de pista · ↑ ou espaço pula · ↓ desliza · ENTER lança uma bomba nos blocos</p>
       <button id="go">CORRER</button>
     </div>
 
@@ -318,8 +306,6 @@
     <div class="hud" id="wordp">
       <div id="cat"></div>
       <div id="word"></div>
-      <!-- ✨ A palavra completa "estoura" aqui por um instante -->
-      <div id="ok"></div>
     </div>
 
     <!-- ⚡ Velocímetro de digitação: palavras por minuto, barra, recorde e combo -->
@@ -334,7 +320,7 @@
     <!-- 💬 Mensagens: toast = rodapé (significado da palavra); banner = faixa grande no meio -->
     <div class="hud" id="toast"></div>
     <div class="hud" id="banner"></div>
-    <div class="hud" id="ctl">← → ou 1 / 0 pista · ↑ ou espaço pular · ↓ deslizar · digite a palavra</div>
+    <div class="hud" id="ctl">← → ou 1 / 0 pista · ↑ ou espaço pular · ↓ deslizar · ENTER bomba · digite a palavra</div>
 
     <!-- ⚡ Clarão da troca de mundo -->
     <div id="flash"></div>
@@ -995,11 +981,16 @@
          cenário e desafio | lim = limite de geração (o portal fecha o caminho)
          door = portal atual | curT = palavra que o jogador está digitando
          wpm = palavras por minuto | rec = recorde
-         voiceOn = a voz lê os significados?
+         voiceOn = a voz lê os significados? | bombs = estoque de bombas
+         holdWord, holdUntil = palavra completa que fica um instante na tela
          ===================================================================== */
 
       let started = false,
         voiceOn = false,
+        bombs = 3,
+        holdUntil = 0,
+        holdWord = '',
+        holdCat = '',
         T = 0,
         speed = 0,
         level = 0,
@@ -1023,11 +1014,12 @@
         bt1,
         bt2,
         lastHud = {};
-      // Listas: ents = coisas interativas (alvos, moedas, blocos...) | scn = cenário | parts = partículas | fx = meteoros | learn = palavras aprendidas | rev = palavras erradas (voltam depois!) | ks = horário de cada tecla certa.
+      // Listas: ents = coisas interativas (alvos, moedas, blocos...) | scn = cenário | parts = partículas | fx = meteoros | shots = bombas voando | learn = palavras aprendidas | rev = palavras erradas (voltam depois!) | ks = horário de cada tecla certa.
       const ents = [],
         scn = [],
         parts = [],
         fx = [],
+        shots = [],
         learn = new Set(),
         rev = [],
         recent = [],
@@ -1068,14 +1060,22 @@
         clearTimeout(bt2);
         bt2 = setTimeout(() => b.style.opacity = 0, ms);
       }
-      // 🗣️ speak lê um texto em voz alta com a síntese de fala do navegador (speechSynthesis). Só funciona se o botão 🗣️ estiver ligado. lang = "pt-BR" pede uma voz em português.
+      // 🗣️ ptVoice escolhe a melhor voz em português instalada (nota maior para pt-BR e para vozes "natural", "neural" ou "google").
+      // Se não houver nenhuma, a voz não liga: assim o jogo não lê português com voz de outro idioma, que soa muito estranho.
+      // speak lê o texto em voz alta com a síntese de fala do navegador (speechSynthesis), um pouco mais devagar (rate = 0.95).
+      function ptVoice() {
+        const nota = x => (/natural|google|neural/i.test(x.name) ? 1 : 0) + (x.lang.toLowerCase().replace('_', '-') === 'pt-br' ? 2 : 0);
+        return speechSynthesis.getVoices().filter(x => x.lang && x.lang.toLowerCase().replace('_', '-').startsWith('pt')).sort((a, b) => nota(b) - nota(a))[0] || null;
+      }
       function speak(txt) {
         if (!voiceOn || !window.speechSynthesis) return;
+        const v = ptVoice();
+        if (!v) return;
         speechSynthesis.cancel();
         const u = new SpeechSynthesisUtterance(txt);
-        u.lang = 'pt-BR';
-        const v = speechSynthesis.getVoices().find(x => x.lang && x.lang.toLowerCase().startsWith('pt'));
-        if (v) u.voice = v;
+        u.voice = v;
+        u.lang = v.lang;
+        u.rate = .95;
         speechSynthesis.speak(u);
       }
 
@@ -1266,21 +1266,46 @@
         if (i >= 0) ents.splice(i, 1);
         if (t.tex) t.tex.dispose();
       }
-      // ✨ popWord mostra a palavra COMPLETA e colorida por um instante (animação "pop" no CSS). Sem isso, ao digitar a última letra a próxima palavra já ocuparia o lugar dela!
-      function popWord(t) {
-        const o = $('ok');
-        o.textContent = t.w.raw.toUpperCase();
-        o.style.color = hex(t.col);
-        o.classList.remove('on');
-        void o.offsetWidth;
-        o.classList.add('on');
+      // 💣 Bombas: addBombs soma ao estoque (máximo 9) e faz o contador pulsar. throwBomb (tecla ENTER) escolhe o bloco vermelho
+      // mais próximo à frente, em qualquer pista, e lança uma bomba nele (gasta 1 do estoque). Ganha-se bombas abrindo portais (+2),
+      // baús (+1) e a cada 5 palavras seguidas (+1). 🛠️ MUDE AQUI: o estoque inicial é bombs = 3 no começo da PARTE 6.
+      function addBombs(n) {
+        bombs = Math.min(9, bombs + n);
+        const m = $('meta');
+        m.classList.remove('pulse');
+        void m.offsetWidth;
+        m.classList.add('pulse');
+      }
+      function throwBomb() {
+        if (bombs < 1) {
+          toast('💣 Sem bombas! Abra portais e baús para ganhar mais.', 2200);
+          sfx('wrong');
+          return;
+        }
+        let tg = null;
+        for (const e of ents) if (e.k === 'bloco' && !e.bombed && e.z < P.z - .5 && P.z - e.z < 70 && (!tg || e.z > tg.z)) tg = e;
+        if (!tg) {
+          toast('💣 Nenhum bloco à frente para explodir.', 1800);
+          return;
+        }
+        bombs--;
+        tg.bombed = 1;
+        sfx('jump');
+        const g = new THREE.Group();
+        sp(g, std(0x222233, 0xff3b3b, .8), 0, 0, 0, .45);
+        glowS(g, 0xff3b3b, 3, 0, 0, 0, .9);
+        g.position.set(P.x, 1.5, P.z);
+        scene.add(g);
+        shots.push({ g, e: tg, x0: P.x, z0: P.z, t: 0 });
       }
       // 🏆 complete roda quando a palavra é digitada por inteiro: pontos, combo, explosão, mensagem com o significado e o efeito de cada tipo (alvo, baú ou portal).
       function complete(t) {
         t.done = 1;
         const w = t.w;
         learn.add(w.raw);
-        popWord(t);
+        holdWord = w.raw.toUpperCase();
+        holdCat = TYPE[w.t] + (t.k === 'porta' ? ' · portal' : t.k === 'bau' ? ' · surpresa' : '');
+        holdUntil = performance.now() + 260;
         speak(w.raw + '. ' + TYPE[w.t] + '. ' + w.m);
         combo++;
         score += Math.round((t.k === 'porta' ? 150 : 50) * (1 + Math.min(combo, 20) * .1));
@@ -1292,6 +1317,7 @@
           kill(t);
         } else if (t.k === 'bau') {
           surprise();
+          addBombs(1);
           kill(t);
         } else {
           sfx('door');
@@ -1300,11 +1326,13 @@
           st++;
           tgtN = 0;
           shake = .5;
-          ban('PORTAL ABERTO!', 1600);
+          addBombs(2);
+          ban('PORTAL ABERTO!<br><span style="font-size:.5em">+2 💣 bombas</span>', 1800);
         }
         if (combo % 5 === 0) {
           turbo = Math.max(turbo, 3.5);
-          ban('TURBO!', 1200);
+          addBombs(1);
+          ban('TURBO!<br><span style="font-size:.5em">+1 💣 bomba</span>', 1400);
         }
         hudKey = '';
       }
@@ -1317,7 +1345,7 @@
         burst(new THREE.Vector3(P.x, 2, e.z), 0xff3b3b, 50, 12);
         sfx('hit');
         toast(`Quase! <b>${e.w.raw.toUpperCase()}</b> · ${TYPE[e.w.t]}<br>${e.w.m}`);
-        speak('Quase! ' + e.w.raw + '. ' + TYPE[e.w.t] + '. ' + e.w.m);
+        speak(e.w.raw + '. ' + TYPE[e.w.t] + '. ' + e.w.m);
         kill(e);
         hudKey = '';
       }
@@ -1457,18 +1485,23 @@
       };
       $('bv').onclick = function() {
         voiceOn = !voiceOn;
+        if (voiceOn && !ptVoice()) {
+          voiceOn = false;
+          toast('🗣️ Nenhuma voz em português foi encontrada neste navegador. Instale uma voz em português no sistema ou tente o Edge ou o Chrome.', 7000);
+        }
         this.classList.toggle('off', !voiceOn);
         this.blur();
         if (voiceOn) speak('Voz ligada.');
       };
       if (!window.speechSynthesis) $('bv').style.display = 'none';
+      else speechSynthesis.getVoices();
 
       /* =====================================================================
          PARTE 10 — TECLADO
-         Setas ou teclas 1 / 0 / espaço = mover. Letras = digitar a palavra ativa
+         Setas ou teclas 1 / 0 / espaço = mover. ENTER = lançar bomba. Letras = digitar a palavra ativa
          (curT): se a letra é a próxima da palavra, avança; se não, a palavra treme
          (sem castigo). Perto das teclas de digitação: 1 = esquerda, 0 = direita,
-         espaço = pular.
+         espaço = pular, ENTER = bomba.
          ===================================================================== */
       // 🎮 Ações do jogador: cada uma é uma função pequena, assim setas, espaço e teclas 1/0 reaproveitam o mesmo código.
       // 🛠️ MUDE AQUI: P.vy = 15 é a força do pulo; 0.7 é quantos segundos dura o deslize.
@@ -1491,7 +1524,7 @@
       // ⌨️ Um único "ouvinte" de teclado cuida de tudo: se a tecla é de movimento, age; se é uma letra, tenta avançar a palavra ativa.
       addEventListener('keydown', e => {
         const k = e.key;
-        if (k.startsWith('Arrow') || k === ' ' || k === '1' || k === '0') {
+        if (k.startsWith('Arrow') || k === ' ' || k === '1' || k === '0' || k === 'Enter') {
           e.preventDefault();
           if (!started) return;
           if (k === 'ArrowLeft' || k === '1') goLeft();
@@ -1499,6 +1532,9 @@
           else if (k === 'ArrowUp' || k === ' ') {
             if (!e.repeat) jump();
           } else if (k === 'ArrowDown') slide();
+          else if (k === 'Enter') {
+            if (!e.repeat) throwBomb();
+          }
           return;
         }
         if (!started || e.ctrlKey || e.metaKey || e.altKey) return;
@@ -1647,7 +1683,7 @@
               continue;
             }
           } else if (e.k === 'bloco') {
-            if (Math.abs(e.z - P.z) < 1.3 && Math.abs(e.x - P.x) < 1.6 && P.y < e.h - .1) {
+            if (!e.bombed && Math.abs(e.z - P.z) < 1.3 && Math.abs(e.x - P.x) < 1.6 && P.y < e.h - .1) {
               stum = 1;
               shake = .6;
               combo = 0;
@@ -1689,6 +1725,21 @@
           if (o.position.z > P.z + 25) {
             scene.remove(o);
             scn.splice(i, 1);
+          }
+        }
+        // 💣 Bombas em voo: a cada quadro avançam um pedaço (k vai de 0 a 1 em 0,3 s) em arco até o bloco; ao chegar, explodem e o bloco some.
+        for (let i = shots.length - 1; i >= 0; i--) {
+          const q = shots[i];
+          q.t += dt / .3;
+          const k = Math.min(1, q.t);
+          q.g.position.set(lerp(q.x0, q.e.x, k), 1.5 - .5 * k + Math.sin(k * Math.PI) * 1.5, lerp(q.z0, q.e.z, k));
+          if (k >= 1) {
+            burst(new THREE.Vector3(q.e.x, 1.2, q.e.z), 0xff8a2b, 70, 13);
+            sfx('boom');
+            shake = .5;
+            scene.remove(q.g);
+            kill(q.e);
+            shots.splice(i, 1);
           }
         }
         // ✨ Partículas: cada uma tem vida (l) e velocidade (v); a gravidade as puxa e elas encolhem até sumir.
@@ -1770,16 +1821,21 @@
         shake *= Math.pow(.02, dt);
         // 📊 Atualiza o painel (HUD): pontos, moedas, velocidade, recorde, combo e a palavra ativa.
         setTxt('score', Math.floor(score).toLocaleString('pt-BR'));
-        setTxt('meta', '🪙 ' + coins + '   📖 ' + learn.size + ' palavras');
+        setTxt('meta', '🪙 ' + coins + '   💣 ' + bombs + '   📖 ' + learn.size + ' palavras');
         setTxt('spdn', Math.round(wpm));
         setTxt('rec', '🏆 recorde ' + rec);
         setTxt('cmb', combo > 1 ? '🔥 combo x' + combo : '');
         $('gf').style.width = clamp(wpm / Math.max(rec, 30) * 100, 0, 100) + '%';
-        const hk = curT ? curT.w.raw + curT.pos : '';
+        // ✅ Segura a palavra COMPLETA, toda colorida, por 0,26 s antes de mostrar a próxima. Assim dá para ver a última letra mudar de cor.
+        const hold = now < holdUntil,
+          hk = hold ? 'h' + holdWord : curT ? curT.w.raw + curT.pos : '';
         if (hk !== hudKey) {
           hudKey = hk;
           const t = curT;
-          if (!t) {
+          if (hold) {
+            $('word').innerHTML = '<i>' + holdWord + '</i>';
+            $('cat').textContent = holdCat;
+          } else if (!t) {
             $('word').innerHTML = '';
             $('cat').textContent = '';
           } else {
