@@ -1,287 +1,1806 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Palavra Veloz</title>
-<style>
-*{box-sizing:border-box}
-html,body{margin:0;height:100%;overflow:hidden;background:#05030f;color:#e8f4ff;font-family:"Segoe UI",system-ui,sans-serif;user-select:none}
-canvas{display:block}
-.hud{position:fixed;pointer-events:none;text-shadow:0 0 8px #000,0 0 3px #000}
-#tl{left:16px;top:12px;font-size:14px;letter-spacing:.1em}
-#world{font-weight:700;color:#19e3ff;text-transform:uppercase}
-#score{font-size:36px;font-weight:800;line-height:1.1;letter-spacing:.04em}
-#wordp{left:50%;top:12px;transform:translateX(-50%);text-align:center;min-width:300px}
-#cat{font-size:12px;letter-spacing:.25em;text-transform:uppercase;opacity:.85;min-height:16px}
-#word{font-size:clamp(34px,7vw,66px);font-weight:800;letter-spacing:.12em;text-transform:uppercase;min-height:1.2em;color:#fff;text-shadow:0 0 22px #000,0 0 30px rgba(25,227,255,.5)}
-#word i{font-style:normal;color:#19e3ff;text-shadow:0 0 16px #19e3ff}
-#word.bad{animation:sh .25s}
-@keyframes sh{25%{transform:translateX(-9px)}75%{transform:translateX(9px)}}
-#toast{left:50%;bottom:70px;transform:translateX(-50%);text-align:center;max-width:90vw;font-size:18px;line-height:1.4;opacity:0;transition:opacity .3s;background:#05030fcc;padding:10px 20px;border-radius:10px;border:1px solid #19e3ff}
-#toast.on{opacity:1}
-#spd{right:16px;top:66px;text-align:right}
-#spdn{font-size:32px;font-weight:800;line-height:1}
-#gauge{width:150px;height:8px;background:#ffffff30;border-radius:4px;overflow:hidden;margin:6px 0 4px auto}
-#gf{display:block;height:100%;width:0;background:linear-gradient(90deg,#19e3ff,#ffd24a,#ff2b6b)}
-#cmb{font-size:20px;font-weight:800;color:#ffd24a;min-height:26px}
-#banner{left:50%;top:36%;transform:translate(-50%,-50%);font-size:clamp(26px,6vw,58px);font-weight:900;letter-spacing:.14em;text-align:center;opacity:0;transition:opacity .4s;text-shadow:0 0 28px #ff2bd6,0 0 6px #000;white-space:nowrap}
-#ctl{left:16px;bottom:12px;font-size:12px;opacity:.7;letter-spacing:.06em}
-#flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;transition:opacity .7s}
-#btns{position:fixed;right:14px;top:12px;display:flex;gap:8px}
-button{font:inherit;font-size:20px;border:1px solid #19e3ff;border-radius:10px;padding:5px 12px;cursor:pointer;background:#0b0820cc;color:#fff}
-button.off{opacity:.4}
-button:focus-visible{outline:3px solid #ffd24a}
-#start{position:fixed;inset:0;z-index:5;background:radial-gradient(ellipse at 50% 120%,#5a1a7a,#0b0820 60%,#05030f);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;text-align:center;padding:20px}
-#start h1{font-size:clamp(40px,10vw,92px);margin:0;line-height:.95;font-weight:900;letter-spacing:.12em;text-shadow:0 0 30px #ff2bd6,0 0 60px #19e3ff}
-#start p{margin:0;max-width:560px;font-size:17px;line-height:1.5;opacity:.9}
-#go{font-size:26px;font-weight:800;letter-spacing:.2em;padding:14px 46px;background:#19e3ff;color:#05030f;border:0;box-shadow:0 0 30px #19e3ff}
-</style>
-</head>
-<body>
-<div id="start">
-  <h1>PALAVRA<br>VELOZ</h1>
-  <p>Corra por mundos secretos. <b>Digite as palavras</b> que aparecem para destruir barreiras, abrir portais e descobrir surpresas. Quanto mais rápido você digita, mais rápido você corre.</p>
-  <p style="font-size:14px;opacity:.7">← → trocam de pista · ↑ pula · ↓ desliza</p>
-  <button id="go">CORRER</button>
-</div>
-<div class="hud" id="tl"><div id="world"></div><div id="score">0</div><div id="meta"></div></div>
-<div class="hud" id="wordp"><div id="cat"></div><div id="word"></div></div>
-<div class="hud" id="spd"><div id="spdn">0</div><div style="font-size:11px;letter-spacing:.15em">PALAVRAS / MIN</div><div id="gauge"><i id="gf"></i></div><div id="rec" style="font-size:13px">🏆 0</div><div id="cmb"></div></div>
-<div class="hud" id="toast"></div>
-<div class="hud" id="banner"></div>
-<div class="hud" id="ctl">← → pista · ↑ pular · ↓ deslizar · digite a palavra</div>
-<div id="flash"></div>
-<div id="btns"><button id="bm" class="off" title="Música">🎵</button><button id="bs" title="Efeitos sonoros">🔊</button></div>
+  <head>
+    <meta charset="UTF-8" />
+    <!-- 📱 viewport: faz a página caber na tela do dispositivo. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Palavra Veloz</title>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script>
-const $=id=>document.getElementById(id),R=Math.random,pick=a=>a[R()*a.length|0];
-const norm=s=>s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),lerp=(a,b,t)=>a+(b-a)*t;
-const TYPE={s:'substantivo',a:'adjetivo',v:'verbo'},TC={s:0x19e3ff,a:0xff2bd6,v:0xffd24a};
+    <!-- 🎨 CSS: cores, tamanhos e animações. -->
+    <style>
+      /* 🎨 CSS: define a aparência. Cada regra é: seletor { propriedade: valor; }
+         (# = elemento com aquele id, . = elemento com aquela classe).
+         box-sizing: border-box faz padding e borda contarem dentro do tamanho da caixa. */
+      * {
+        box-sizing: border-box;
+      }
 
-/* ---------- vocabulário: [palavra, tipo, significado] ---------- */
-const V=[['raio','s','descarga elétrica que cai do céu'],['fogo','s','chama que queima e ilumina'],['vento','s','ar em movimento'],['mapa','s','desenho que mostra caminhos e lugares'],['nave','s','veículo que viaja pelo espaço'],['trilha','s','caminho estreito na natureza'],['correr','v','andar muito depressa'],['saltar','v','pular por cima de algo'],['veloz','a','muito rápido'],['ágil','a','leve e rápido nos movimentos'],['vencer','v','ganhar de um desafio'],
-['trovão','s','barulho forte que vem depois do raio'],['cometa','s','astro com uma cauda brilhante'],['escudo','s','proteção que se carrega no braço'],['tesouro','s','riquezas guardadas em segredo'],['planeta','s','corpo grande que gira em torno de uma estrela'],['foguete','s','nave que sobe ao espaço'],['segredo','s','algo que poucos sabem'],['caverna','s','buraco grande dentro da montanha'],['vulcão','s','montanha que solta lava'],['floresta','s','lugar cheio de árvores'],['galáxia','s','imenso grupo de estrelas'],
-['escalar','v','subir em algo alto'],['explorar','v','conhecer um lugar procurando coisas'],['desviar','v','sair do caminho para não bater'],['descobrir','v','encontrar algo novo'],['atravessar','v','passar de um lado ao outro'],['proteger','v','defender de perigos'],['enfrentar','v','encarar um desafio sem fugir'],['conquistar','v','alcançar com esforço'],['desvendar','v','descobrir o segredo de algo'],['brilhar','v','soltar luz'],
-['corajoso','a','que não tem medo'],['misterioso','a','cheio de segredos'],['sombrio','a','escuro e assustador'],['poderoso','a','que tem muita força'],['lendário','a','famoso nas lendas'],['invisível','a','que não dá para ver'],['perigoso','a','que pode causar dano'],['incrível','a','difícil de acreditar de tão bom'],['silencioso','a','que não faz barulho'],['ancestral','a','muito antigo'],
-['labirinto','s','lugar cheio de caminhos que confundem'],['relâmpago','s','clarão rápido durante a tempestade'],['tempestade','s','chuva forte com vento e raios'],['aventura','s','experiência cheia de emoção'],['fortaleza','s','construção forte para defesa'],['meteoro','s','pedra do espaço que cai em chamas']];
+      /* Página em tela cheia, fundo escuro, sem barras de rolagem (overflow: hidden). */
+      html, body {
+        margin: 0;
+        height: 100%;
+        overflow: hidden;
+        background: #05030f;
+        color: #e8f4ff;
+        font-family: "Segoe UI",system-ui,sans-serif;
+        user-select: none;
+      }
 
-/* ---------- cena ---------- */
-const scene=new THREE.Scene(),cam=new THREE.PerspectiveCamera(65,innerWidth/innerHeight,.1,420);
-const ren=new THREE.WebGLRenderer({antialias:true});ren.setPixelRatio(Math.min(devicePixelRatio,2));ren.setSize(innerWidth,innerHeight);document.body.prepend(ren.domElement);
-scene.background=new THREE.Color(0x120a2e);scene.fog=new THREE.Fog(0x1a0f3d,40,150);
-const hemi=new THREE.HemisphereLight(0x8899ff,0x221133,.9),dl=new THREE.DirectionalLight(0xffffff,.7),rl=new THREE.PointLight(0x19e3ff,1.4,20);
-scene.add(hemi,dl,dl.target,rl);
+      canvas {
+        display: block;
+      }
 
-const BOX=new THREE.BoxGeometry(1,1,1),CYL=new THREE.CylinderGeometry(1,1,1,10),CNE=new THREE.ConeGeometry(1,1,7),SPH=new THREE.SphereGeometry(1,14,10),ICO=new THREE.IcosahedronGeometry(1,0),OCT=new THREE.OctahedronGeometry(1,0),PLN=new THREE.PlaneGeometry(1,1),CIR=new THREE.CircleGeometry(1,18),TOR=new THREE.TorusGeometry(1,.06,6,48);
-const MC={};
-const std=(c,e=0,ei=1)=>MC['s'+c+'_'+e+'_'+ei]||(MC['s'+c+'_'+e+'_'+ei]=new THREE.MeshStandardMaterial({color:c,roughness:.55,metalness:.35,emissive:e,emissiveIntensity:ei,flatShading:true}));
-const neon=c=>MC['n'+c]||(MC['n'+c]=new THREE.MeshBasicMaterial({color:c}));
-const gl=(c,o=.3)=>MC['g'+c+'_'+o]||(MC['g'+c+'_'+o]=new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:o,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide}));
-const mk=(g,geo,m,x,y,z,sx,sy,sz)=>{const o=new THREE.Mesh(geo,m);o.position.set(x,y,z);o.scale.set(sx,sy,sz);g.add(o);return o};
-const bx=(g,m,x,y,z,w,h,d)=>mk(g,BOX,m,x,y,z,w,h,d),cy=(g,m,x,y,z,r,h)=>mk(g,CYL,m,x,y,z,r,h,r),cn=(g,m,x,y,z,r,h)=>mk(g,CNE,m,x,y,z,r,h,r),sp=(g,m,x,y,z,r)=>mk(g,SPH,m,x,y,z,r,r,r);
-const gc=document.createElement('canvas');gc.width=gc.height=64;{const x=gc.getContext('2d'),g=x.createRadialGradient(32,32,0,32,32,32);g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(.3,'rgba(255,255,255,.35)');g.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=g;x.fillRect(0,0,64,64)}
-const gtex=new THREE.CanvasTexture(gc),SMC={};
-const glowS=(g,c,s,x,y,z,o=.9)=>{const k=c+'_'+o,sp=new THREE.Sprite(SMC[k]||(SMC[k]=new THREE.SpriteMaterial({map:gtex,color:c,blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,opacity:o})));sp.scale.set(s,s,1);sp.position.set(x,y,z);g.add(sp);return sp};
+      /* 🖥️ .hud = peças da interface (HUD) por cima do jogo. position: fixed gruda na tela;
+         pointer-events: none deixa o mouse "passar" por elas. */
+      .hud {
+        position: fixed;
+        pointer-events: none;
+        text-shadow: 0 0 8px #000,0 0 3px #000;
+      }
 
-/* ---------- chão, pista, estrelas, partículas ---------- */
-function cvs(w,h,f){const c=document.createElement('canvas');c.width=w;c.height=h;f(c.getContext('2d'),w,h);const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=4;return t}
-const roadT=cvs(64,256,(x,w,h)=>{x.fillStyle='#262626';x.fillRect(0,0,w,h);x.fillStyle='#fff';x.fillRect(1,0,3,h);x.fillRect(w-4,0,3,h);[22,41].forEach(u=>x.fillRect(u,0,2,h*.5))});
-roadT.repeat.set(1,40);
-const gridT=cvs(64,64,(x,w,h)=>{x.fillStyle='#000';x.fillRect(0,0,w,h);x.fillStyle='#fff';x.fillRect(0,0,w,2);x.fillRect(0,0,2,h)});gridT.repeat.set(75,75);
-const road=new THREE.Mesh(new THREE.PlaneGeometry(10,400),new THREE.MeshBasicMaterial({map:roadT,color:0x19e3ff}));road.rotation.x=-Math.PI/2;road.position.y=.02;scene.add(road);
-const ground=new THREE.Mesh(new THREE.PlaneGeometry(600,600),new THREE.MeshBasicMaterial({map:gridT,color:0x101030}));ground.rotation.x=-Math.PI/2;scene.add(ground);
-const NS=500,spos=new Float32Array(NS*3);for(let i=0;i<NS;i++){const a=R()*6.283,e=R()*1.4+.05;spos[i*3]=Math.cos(a)*Math.cos(e)*300;spos[i*3+1]=Math.sin(e)*300;spos[i*3+2]=Math.sin(a)*Math.cos(e)*300}
-const sg=new THREE.BufferGeometry();sg.setAttribute('position',new THREE.BufferAttribute(spos,3));
-const stars=new THREE.Points(sg,new THREE.PointsMaterial({color:0xffffff,size:1.6,sizeAttenuation:false,transparent:true,opacity:.5,fog:false,depthWrite:false}));stars.frustumCulled=false;scene.add(stars);
-const NL=90,lp=new Float32Array(NL*6),lg=new THREE.BufferGeometry(),LX=[],LY=[],LZ=[];lg.setAttribute('position',new THREE.BufferAttribute(lp,3));
-for(let i=0;i<NL;i++){LX[i]=(R()-.5)*34;LY[i]=.3+R()*10;LZ[i]=-R()*120}
-const lm=new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false}),lns=new THREE.LineSegments(lg,lm);lns.frustumCulled=false;scene.add(lns);
-const NA=220,ap=new Float32Array(NA*3),ag=new THREE.BufferGeometry();ag.setAttribute('position',new THREE.BufferAttribute(ap,3));
-for(let i=0;i<NA;i++){ap[i*3]=(R()-.5)*40;ap[i*3+1]=R()*16;ap[i*3+2]=-R()*80}
-const am=new THREE.PointsMaterial({color:0x19e3ff,size:.4,transparent:true,opacity:.8,blending:THREE.AdditiveBlending,depthWrite:false}),apt=new THREE.Points(ag,am);apt.frustumCulled=false;scene.add(apt);
+      #tl {
+        left: 16px;
+        top: 12px;
+        font-size: 14px;
+        letter-spacing: .1em;
+      }
 
-/* ---------- corredor ---------- */
-const LN=[-3.2,0,3.2],P={x:0,lane:1,y:0,vy:0,z:0,slide:0,ph:0};
-const rn=new THREE.Group();scene.add(rn);const body=new THREE.Group();rn.add(body);body.rotation.y=Math.PI;
-const SUIT=std(0x161826,0x0a0c18,1),ACC=neon(0x19e3ff);
-bx(body,SUIT,0,2,0,.9,1.1,.5);bx(body,ACC,0,2.15,.26,.55,.1,.02);bx(body,ACC,0,1.85,.26,.55,.06,.02);sp(body,SUIT,0,2.95,0,.38);bx(body,ACC,0,2.97,.3,.5,.12,.1);bx(body,std(0x23263a),0,2.1,-.4,.6,.9,.3);
-const flame=glowS(body,0xff8a2b,1.6,0,1.7,-.55,.95);
-const pv=(x,y)=>{const p=new THREE.Group();p.position.set(x,y,0);body.add(p);return p};
-const lLg=pv(-.25,1.45),lRg=pv(.25,1.45),aLg=pv(-.62,2.5),aRg=pv(.62,2.5);
-[lLg,lRg].forEach(p=>{cy(p,SUIT,0,-.55,0,.17,1.1);bx(p,ACC,0,-1,.12,.2,.08,.2)});[aLg,aRg].forEach(p=>cy(p,SUIT,0,-.45,0,.13,.9));
-const blob=mk(rn,CIR,new THREE.MeshBasicMaterial({color:0,transparent:true,opacity:.5}),0,.04,0,.8,.8,1);blob.rotation.x=-Math.PI/2;
+      #world {
+        font-weight: 700;
+        color: #19e3ff;
+        text-transform: uppercase;
+      }
 
-/* ---------- mundos ---------- */
-const TH=[
-{n:'Cidade Neon',sky:0x120a2e,fog:0x1a0f3d,gr:0x2a1a6a,acc:0xff2bd6,vy:-24,st:.5,
- b:s=>{const g=new THREE.Group(),w=5+R()*6,h=10+R()*38,d=7+R()*5,c=R()<.5?0xff2bd6:0x19e3ff;bx(g,std(0x0d0a22,0x05030f),0,h/2,0,w,h,d);
-  for(let i=0,n=2+(R()*3|0);i<n;i++)bx(g,neon(c),0,2+R()*(h-3),0,w+.15,.22,d+.15);
-  for(let i=0;i<7;i++)bx(g,neon(0xffe9a8),-s*(w/2+.05),2+R()*(h-3),(R()-.5)*(d-1),.1,1.1,.6);
-  if(R()<.35)mk(g,PLN,gl(c,.55),-s*(w/2+.12),h*.55,0,6,3,1).rotation.y=-s*Math.PI/2;
-  if(R()<.4)glowS(g,c,12,0,h+2,0,.8);return g}},
-{n:'Floresta Ancestral',sky:0x04160f,fog:0x0a2a1d,gr:0x1f6a45,acc:0x3dffb0,vy:.7,st:.3,
- b:s=>{const g=new THREE.Group(),h=12+R()*22,r=.6+R()*.8;cy(g,std(0x1a120c),0,h/2,0,r,h);
-  for(let i=0;i<3;i++)cn(g,std(0x0b3a24,0x0a5a36,.5),0,h*.55+i*h*.16,0,5-i*1.2,h*.34);
-  if(R()<.6){const c=R()<.5?0x3dffb0:0xb2ff3d;sp(g,neon(c),-s*3,.5,(R()-.5)*4,.6+R()*.5);glowS(g,c,5,-s*3,.8,0,.7)}return g}},
-{n:'Vulcão',sky:0x2a0a05,fog:0x4a1408,gr:0x7a2a10,acc:0xff6a1a,vy:3,st:.15,
- b:s=>{const g=new THREE.Group(),h=8+R()*20,r=2+R()*4;cn(g,std(0x2a1812,0x4a1005,.6),0,h/2,0,r,h);
-  if(R()<.7){const q=3+R()*3;mk(g,CIR,neon(0xff6a1a),-s*(r+3),.06,R()*4,q,q,1).rotation.x=-Math.PI/2;glowS(g,0xff6a1a,12,-s*(r+3),1,0,.7)}
-  sp(g,std(0x33201a),s*3,1,R()*6,1+R()*2);return g}},
-{n:'Estação Espacial',sky:0x02030a,fog:0x070b1f,gr:0x1a2a7a,acc:0x5b7bff,vy:0,st:1,
- b:s=>{const g=new THREE.Group();
-  if(R()<.14){const r=14+R()*14,c=pick([0x5b7bff,0xb36bff,0xff6a8a,0x3dd6c4]),px=s*(35+R()*20),py=18+R()*20;sp(g,std(c,c,.3),px,py,-10,r);mk(g,TOR,gl(c,.45),px,py,-10,r*1.7,r*1.7,.2).rotation.x=1.2}
-  else{const r=1.5+R()*3,a=mk(g,ICO,std(0x2a3150,0x1a2050,.4),s*(8+R()*14),2+R()*24,0,r,r*(.7+R()*.5),r);g.userData.sp=a;
-   if(R()<.35){const c=pick([0x5b7bff,0xb36bff]);mk(g,OCT,neon(c),-s*5,1+R()*3,R()*4,.6,1.6,.6);glowS(g,c,5,-s*5,2,0,.7)}}return g}}];
-let cur=0,st=0;const tSky=new THREE.Color(),tFog=new THREE.Color(),tGr=new THREE.Color(),tAcc=new THREE.Color();let tStar=.5;
-function applyTheme(i,now){const t=TH[i%4];tSky.set(t.sky);tFog.set(t.fog);tGr.set(t.gr);tAcc.set(t.acc);tStar=t.st;
-  if(now){scene.background.copy(tSky);scene.fog.color.copy(tFog);ground.material.color.copy(tGr);road.material.color.copy(tAcc)}
-  $('world').textContent='MUNDO '+(level+1)+' · '+t.n}
+      #score {
+        font-size: 36px;
+        font-weight: 800;
+        line-height: 1.1;
+        letter-spacing: .04em;
+      }
 
-/* ---------- estado ---------- */
-let started=false,T=0,speed=0,level=0,score=0,coins=0,combo=0,turbo=0,slow=0,stum=0,shake=0,tgtN=0,sz=-20,tz=-70,lim=-1e9,door=null,curT=null,hudKey='',wpm=0,rec=0,lastCel=0,bt1,bt2,lastHud={};
-const ents=[],scn=[],parts=[],fx=[],learn=new Set(),rev=[],recent=[],ks=[];
-try{rec=+localStorage.getItem('pv_rec')||0}catch(e){}
-const mkW=w=>({raw:w[0],n:norm(w[0]),t:w[1],m:w[2]});
-function pickWord(long){const [a,b]=level<1?[4,7]:level<2?[5,8]:[6,11],lo=long?a+2:a,hi=long?b+3:b;
-  if(rev.length&&R()<.3)return rev.shift();
-  let c=V.filter(w=>{const n=norm(w[0]).length;return n>=lo&&n<=hi&&!recent.includes(w[0])});if(!c.length)c=V;const w=pick(c);recent.push(w[0]);if(recent.length>6)recent.shift();return w}
-function toast(h,ms=4200){const b=$('toast');b.innerHTML=h;b.classList.add('on');clearTimeout(bt1);bt1=setTimeout(()=>b.classList.remove('on'),ms)}
-function ban(t,ms=2200){const b=$('banner');b.innerHTML=t;b.style.opacity=1;clearTimeout(bt2);bt2=setTimeout(()=>b.style.opacity=0,ms)}
-const hex=c=>'#'+c.toString(16).padStart(6,'0');
+      #wordp {
+        left: 50%;
+        top: 12px;
+        transform: translateX(-50%);
+        text-align: center;
+        min-width: 300px;
+      }
 
-/* ---------- partículas e efeitos ---------- */
-const PC=[0x19e3ff,0xff2bd6,0xffd24a,0xff3b3b,0xffffff,0x69ffb0];
-function burst(p,col,n=40,s=9){for(let i=0;i<n;i++){const m=new THREE.Mesh(BOX,neon(R()<.7?col:pick(PC)));m.position.copy(p);m.scale.setScalar(.35);const a=R()*6.28,b=R()*3.14,k=s*(.4+R()*.8);parts.push({m,l:.8+R()*.8,v:new THREE.Vector3(Math.cos(a)*Math.sin(b)*k,Math.cos(b)*k*.8+3,Math.sin(a)*Math.sin(b)*k-speed*.4)});scene.add(m)}}
-function meteors(){for(let i=0;i<14;i++){const g=new THREE.Group();sp(g,neon(0xffa040),0,0,0,.8);glowS(g,0xff7a1a,7,0,0,0,.9);g.position.set(P.x+(R()-.5)*50,45+R()*25,P.z-25-R()*80);scene.add(g);fx.push({g,v:new THREE.Vector3((R()-.5)*8,-48-R()*20,-8)})}}
-function surprise(){sfx('surp');const r=R()*4|0;
-  if(r===0){turbo=6;ban('SURPRESA: TURBO!')}
-  else if(r===1){coins+=25;score+=250;ban('CHUVA DE MOEDAS!');burst(new THREE.Vector3(P.x,2,P.z-4),0xffd24a,90,12)}
-  else if(r===2){score+=150;meteors();ban('CHUVA DE METEOROS!')}
-  else{slow=5;ban('CÂMERA LENTA!')}}
+      #cat {
+        font-size: 12px;
+        letter-spacing: .25em;
+        text-transform: uppercase;
+        opacity: .85;
+        min-height: 16px;
+      }
 
-/* ---------- entidades ---------- */
-function drawSign(e){const c=e.cv,x=c.getContext('2d'),W=c.width,H=c.height,t=e.w.raw.toUpperCase(),px=Math.min(80,710/t.length);
-  x.clearRect(0,0,W,H);x.fillStyle='rgba(5,5,20,.78)';x.fillRect(0,0,W,H);x.strokeStyle=hex(e.col);x.lineWidth=6;x.strokeRect(3,3,W-6,H-6);
-  x.font='bold '+px+'px "Segoe UI",sans-serif';x.textBaseline='middle';x.textAlign='left';let cx=(W-x.measureText(t).width)/2;
-  for(let i=0;i<t.length;i++){x.fillStyle=i<e.pos?hex(e.col):'#fff';x.fillText(t[i],cx,H/2+4);cx+=x.measureText(t[i]).width}
-  e.tex.needsUpdate=true}
-function mkSign(g,e,w,h,y,z){e.cv=document.createElement('canvas');e.cv.width=512;e.cv.height=128;e.tex=new THREE.CanvasTexture(e.cv);drawSign(e);mk(g,PLN,new THREE.MeshBasicMaterial({map:e.tex,transparent:true}),0,y,z,w,h,1)}
-function spawnT(z){tgtN++;const kind=tgtN>=8?'porta':tgtN%5===3?'bau':'alvo',w=mkW(pickWord(kind==='porta')),col=kind==='bau'?0xffc83d:kind==='porta'?0xff2bd6:TC[w.t],g=new THREE.Group(),e={k:kind,z,g,w,col,pos:0,done:0,open:0};g.position.z=z;
-  if(kind==='alvo'){const m=std(0x1a1a28,col,.8);[-5.4,5.4].forEach(x=>bx(g,m,x,3,0,.5,6,.5));bx(g,m,0,6,0,11.3,.5,.5);mk(g,PLN,gl(col,.22),0,3,0,10.4,6,1);glowS(g,col,10,0,3,0,.5);mkSign(g,e,8,2,7.4,.2)}
-  else if(kind==='bau'){bx(g,std(0x8a5a10,0xffc83d,.7),0,.8,0,2.4,1.6,1.6);bx(g,neon(0xffc83d),0,1.65,0,2.5,.2,1.7);e.star=mk(g,OCT,neon(0xffc83d),0,3.2,0,.7,1,.7);glowS(g,0xffc83d,8,0,1.8,0,.8);mkSign(g,e,6,1.5,5.4,.2)}
-  else{const m=std(0x14141f,0xff2bd6,.9),w2=std(0x0b0b16,0x120a25,1);[-5.4,5.4].forEach(x=>bx(g,m,x,8,0,1,16,1.2));bx(g,m,0,16.2,0,11.8,1.2,1.2);bx(g,w2,-23.4,15,0,35,30,1);bx(g,w2,23.4,15,0,35,30,1);bx(g,w2,0,24.6,0,12,16,1);
-   bx(g,neon(0xff2bd6),-23.4,2,.55,35,.3,.1);bx(g,neon(0x19e3ff),23.4,2,.55,35,.3,.1);bx(g,neon(0x19e3ff),-23.4,28,.55,35,.3,.1);bx(g,neon(0xff2bd6),23.4,28,.55,35,.3,.1);
-   const pm=std(0x1b1b2b,0xff2bd6,.5);e.pl=bx(g,pm,-2.7,6.5,.2,5.4,13,.6);e.pr=bx(g,pm,2.7,6.5,.2,5.4,13,.6);
-   e.gl=glowS(g,0xffffff,30,0,7,-3,0);mkSign(g,e,10,2.5,19,.9)}
-  scene.add(g);ents.push(e);if(kind==='porta'){door=e;lim=z-2}}
-function coin(x,z){const g=new THREE.Group(),c=mk(g,CYL,neon(0xffd24a),0,1.3,0,.5,.12,.5);c.rotation.x=Math.PI/2;glowS(g,0xffd24a,2.2,0,1.3,0,.6);g.position.set(x,0,z);scene.add(g);ents.push({k:'moeda',z,x,g})}
-function block(x,z){const tall=R()<.4,h=tall?4.2:1.4,g=new THREE.Group();bx(g,std(0x20202e,0xff3b3b,.6),0,h/2,0,2.6,h,1.6);bx(g,neon(0xff3b3b),0,h,0,2.7,.12,1.7);g.position.set(x,0,z);scene.add(g);ents.push({k:'bloco',z,x,g,h})}
-const nearT=z=>ents.some(e=>e.w&&Math.abs(e.z-z)<16);
-function spawnRow(z){const t=TH[st%4];
-  [-1,1].forEach(s=>{if(R()<.85){const o=t.b(s);o.position.set(s*(7.5+R()*16),0,z+R()*8);scene.add(o);scn.push(o)}});
-  if(R()<.1&&!nearT(z)){const l=R()*3|0;for(let i=0;i<6;i++)coin(LN[l],z-i*2.4)}
-  else if(z<-110&&R()<.12&&!nearT(z)&&Math.abs(z-tz)>16)block(LN[R()*3|0],z)}
+      #word {
+        font-size: clamp(34px,7vw,66px);
+        font-weight: 800;
+        letter-spacing: .12em;
+        text-transform: uppercase;
+        min-height: 1.2em;
+        color: #fff;
+        text-shadow: 0 0 22px #000,0 0 30px rgba(25,227,255,.5);
+      }
 
-function kill(t){scene.remove(t.g);const i=ents.indexOf(t);if(i>=0)ents.splice(i,1);if(t.tex)t.tex.dispose()}
-function complete(t){t.done=1;const w=t.w;learn.add(w.raw);combo++;score+=Math.round((t.k==='porta'?150:50)*(1+Math.min(combo,20)*.1));
-  burst(new THREE.Vector3(0,3,t.z),t.col,45,10);toast(`<b style="color:${hex(t.col)}">${w.raw.toUpperCase()}</b> · ${TYPE[w.t]}<br>${w.m}`);
-  if(t.k==='alvo'){sfx('boom');shake=.35;kill(t)}
-  else if(t.k==='bau'){surprise();kill(t)}
-  else{sfx('door');t.opening=1;lim=-1e9;st++;tgtN=0;shake=.5;ban('PORTAL ABERTO!',1600)}
-  if(combo%5===0){turbo=Math.max(turbo,3.5);ban('TURBO!',1200)}hudKey=''}
-function hitAlvo(e){combo=0;stum=1.2;shake=.9;rev.push([e.w.raw,e.w.t,e.w.m]);burst(new THREE.Vector3(P.x,2,e.z),0xff3b3b,50,12);sfx('hit');toast(`Quase! <b>${e.w.raw.toUpperCase()}</b> · ${TYPE[e.w.t]}<br>${e.w.m}`);kill(e);hudKey=''}
-function crossTheme(){cur++;level++;applyTheme(cur);const f=$('flash');f.style.transition='none';f.style.opacity=.95;requestAnimationFrame(()=>{f.style.transition='opacity .8s';f.style.opacity=0});ban('MUNDO '+(level+1)+'<br><span style="font-size:.5em">'+TH[cur%4].n.toUpperCase()+'</span>',3000);score+=300;sfx('surp')}
+      #word i {
+        font-style: normal;
+        color: #19e3ff;
+        text-shadow: 0 0 16px #19e3ff;
+      }
 
-/* ---------- som (sintetizado) ---------- */
-let AC,mG,sG,nb,musicOn=false,sfxOn=true,stp=0,mt;
-function ac(){if(!AC){AC=new(window.AudioContext||window.webkitAudioContext)();mG=AC.createGain();mG.gain.value=.13;mG.connect(AC.destination);sG=AC.createGain();sG.gain.value=.25;sG.connect(AC.destination);nb=AC.createBuffer(1,AC.sampleRate*.6,AC.sampleRate);const d=nb.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=R()*2-1}if(AC.state==='suspended')AC.resume()}
-function tone(f,d,ty,g,v,t0=0,f2){const o=AC.createOscillator(),e=AC.createGain(),t=AC.currentTime+t0;o.type=ty;o.frequency.setValueAtTime(f,t);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t+d);e.gain.setValueAtTime(0,t);e.gain.linearRampToValueAtTime(v,t+.01);e.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(e);e.connect(g);o.start(t);o.stop(t+d+.05)}
-function noise(d,g,v,fc){const s=AC.createBufferSource(),f=AC.createBiquadFilter(),e=AC.createGain(),t=AC.currentTime;s.buffer=nb;f.type='bandpass';f.frequency.value=fc;e.gain.setValueAtTime(v,t);e.gain.exponentialRampToValueAtTime(.001,t+d);s.connect(f);f.connect(e);e.connect(g);s.start(t);s.stop(t+d)}
-function sfx(k,a=0){if(!sfxOn||!AC)return;
-  if(k==='key')tone(440+a*55,.07,'square',sG,.3);
-  else if(k==='wrong')tone(130,.12,'sawtooth',sG,.35);
-  else if(k==='boom'){noise(.45,sG,.9,1500);[523,659,784,1047].forEach((f,i)=>tone(f,.16,'triangle',sG,.45,i*.05))}
-  else if(k==='coin')tone(1200,.09,'square',sG,.22);
-  else if(k==='jump')tone(260,.18,'sine',sG,.35,0,620);
-  else if(k==='hit'){noise(.3,sG,.8,400);tone(90,.3,'sawtooth',sG,.5,0,40)}
-  else if(k==='door'){tone(110,1.2,'sawtooth',sG,.4,0,900);noise(.9,sG,.5,3000)}
-  else if(k==='surp')[392,523,659,784,1047,1319].forEach((f,i)=>tone(f,.25,'square',sG,.3,i*.07))}
-const BASS=[55,43.65,65.4,49],ARP=[[220,261.6,329.6],[174.6,220,261.6],[261.6,329.6,392],[196,246.9,293.7]];
-function mstep(){const c=(stp>>4)%4;if(stp%4===0)tone(150,.18,'sine',mG,1,0,40);tone(BASS[c]*(stp%8<4?1:2),.17,'sawtooth',mG,.35);if(stp%2)tone(ARP[c][(stp>>1)%3]*2,.12,'square',mG,.16);else noise(.04,mG,.14,7000);stp++}
-function setMusic(on){musicOn=on;clearInterval(mt);if(on){ac();mt=setInterval(mstep,190)}$('bm').classList.toggle('off',!on)}
-$('bm').onclick=function(){setMusic(!musicOn);this.blur()};
-$('bs').onclick=function(){sfxOn=!sfxOn;this.classList.toggle('off',!sfxOn);this.blur()};
+      /* 🎞️ Animação (@keyframes): a palavra treme quando você erra uma tecla. */
+      #word.bad {
+        animation: sh .25s;
+      }
 
-/* ---------- teclado ---------- */
-addEventListener('keydown',e=>{
-  if(e.key.startsWith('Arrow')){e.preventDefault();if(!started)return;
-    if(e.key==='ArrowLeft')P.lane=Math.max(0,P.lane-1);else if(e.key==='ArrowRight')P.lane=Math.min(2,P.lane+1);
-    else if(e.key==='ArrowUp'&&P.y===0){P.vy=15;sfx('jump')}else if(e.key==='ArrowDown'){P.slide=.7;if(P.y>0)P.vy=-26}return}
-  if(!started||e.ctrlKey||e.metaKey||e.altKey)return;
-  const ch=norm(e.key);if(ch.length!==1||ch<'a'||ch>'z')return;const t=curT;if(!t)return;
-  if(ch===t.w.n[t.pos]){t.pos++;ks.push(performance.now());sfx('key',t.pos);if(t.cv)drawSign(t);hudKey='';if(t.pos>=t.w.n.length)complete(t)}
-  else{const w=$('word');w.classList.remove('bad');void w.offsetWidth;w.classList.add('bad');sfx('wrong')}});
-addEventListener('resize',()=>{cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();ren.setSize(innerWidth,innerHeight)});
-$('go').onclick=()=>{ac();$('start').style.display='none';started=true;applyTheme(0,true);toast('Digite a palavra que aparece no topo para destruir a barreira!',5000)};
+      /* ✨ A palavra completa "estoura" na tela por 0,7 s (veja popWord no JavaScript). */
+      #ok {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 100%;
+        font-size: clamp(22px,4.5vw,34px);
+        font-weight: 800;
+        letter-spacing: .12em;
+        opacity: 0;
+        text-shadow: 0 0 14px currentColor,0 0 4px #000;
+      }
 
-/* ---------- laço principal ---------- */
-function setTxt(id,v){if(lastHud[id]!==v){lastHud[id]=v;$(id).textContent=v}}
-function update(dt){
-  const now=performance.now();T+=dt;
-  while(sz>P.z-135&&sz>lim){spawnRow(sz);sz-=11}
-  while(tz>P.z-135&&tz>lim){spawnT(tz);tz-=48+speed*1.6+R()*12}
-  // velocidade
-  const base=15+level*1.6;let df=1;if(door&&door.open<.6)df=clamp((P.z-(door.z+3))/30,.12,1);
-  const tg=(base+clamp(wpm*.2,0,15))*(turbo>0?1.5:1)*(stum>0?.35:1)*(slow>0?.55:1)*df;
-  speed=lerp(speed,tg,clamp(dt*2.5,0,1));turbo-=dt;slow-=dt;stum-=dt;
-  P.z-=speed*dt;if(door&&door.open<.6)P.z=Math.max(P.z,door.z+3);score+=speed*dt*.4;
-  P.x=lerp(P.x,LN[P.lane],clamp(dt*14,0,1));
-  if(P.y>0||P.vy>0){P.vy-=40*dt;P.y+=P.vy*dt;if(P.y<=0){P.y=0;P.vy=0}}P.slide=Math.max(0,P.slide-dt);
-  // corredor
-  P.ph+=speed*dt*.55;const sw=Math.sin(P.ph)*.95,air=P.y>0;
-  lLg.rotation.x=air?-.6:sw;lRg.rotation.x=air?.5:-sw;aLg.rotation.x=air?-2.6:-sw;aRg.rotation.x=air?-2.6:sw;
-  rn.position.set(P.x,P.y+(P.slide>0?.35:0),P.z);rn.rotation.x=lerp(rn.rotation.x,P.slide>0?1.25:0,clamp(dt*16,0,1));rn.rotation.z=(LN[P.lane]-P.x)*.12;
-  flame.scale.setScalar(1.3+Math.sin(T*40)*.3+(turbo>0?1.2:0));blob.position.y=.04-P.y;blob.scale.setScalar(.8*clamp(1-P.y*.12,.4,1));
-  rl.position.set(P.x,3,P.z+1);rl.color.lerp(tAcc,.05);
-  // cenário que acompanha
-  road.position.z=ground.position.z=P.z;roadT.offset.y=-(P.z/10);gridT.offset.y=-(P.z/8);stars.position.copy(cam.position);dl.position.set(P.x-10,20,P.z+10);dl.target.position.set(P.x,0,P.z);
-  // transições de cor
-  const k=clamp(dt*2.5,0,1);scene.background.lerp(tSky,k);scene.fog.color.lerp(tFog,k);ground.material.color.lerp(tGr,k);road.material.color.lerp(tAcc,k);hemi.color.lerp(tAcc,k*.5);am.color.lerp(tAcc,k);stars.material.opacity=lerp(stars.material.opacity,tStar,k);
-  // alvo ativo
-  curT=null;let bd=1e9;for(const e of ents){if(!e.w||e.done)continue;const d=P.z-e.z;if(d>-1&&d<110&&d<bd){bd=d;curT=e}}
-  // entidades
-  for(let i=ents.length-1;i>=0;i--){const e=ents[i];if(!e)continue;
-    if(e.k==='moeda'){e.g.rotation.y+=dt*4;if(Math.abs(e.z-P.z)<1.4&&Math.abs(e.x-P.x)<1.5&&P.y<3){coins++;score+=10;sfx('coin');kill(e);continue}}
-    else if(e.k==='bloco'){if(Math.abs(e.z-P.z)<1.3&&Math.abs(e.x-P.x)<1.6&&P.y<e.h-.1){stum=1;shake=.6;combo=0;burst(new THREE.Vector3(e.x,1,e.z),0xff3b3b,30,9);sfx('hit');kill(e);continue}}
-    else if(e.k==='alvo'){if(!e.done&&P.z<e.z+1){hitAlvo(e);continue}}
-    else if(e.k==='bau'){e.star.rotation.y+=dt*3;if(!e.done&&P.z<e.z-1){toast('Perdeu a surpresa! A palavra era <b>'+e.w.raw.toUpperCase()+'</b>');kill(e);hudKey='';continue}}
-    else if(e.k==='porta'&&e.opening){e.open=Math.min(1,e.open+dt*1.1);e.pl.position.x=-2.7-e.open*5.6;e.pr.position.x=2.7+e.open*5.6;e.gl.material.opacity=e.open*.9}
-    if(e.z>P.z+25)kill(e)}
-  if(door&&door.open>=1&&P.z<door.z-2){crossTheme();door=null}
-  for(let i=scn.length-1;i>=0;i--){const o=scn[i];if(o.userData.sp)o.userData.sp.rotation.y+=dt*.5;if(o.position.z>P.z+25){scene.remove(o);scn.splice(i,1)}}
-  // partículas
-  for(let i=parts.length-1;i>=0;i--){const p=parts[i];p.l-=dt;p.v.y-=14*dt;p.m.position.addScaledVector(p.v,dt);p.m.scale.setScalar(.35*clamp(p.l*1.5,0,1));if(p.l<=0||p.m.position.y<0){scene.remove(p.m);parts.splice(i,1)}}
-  for(let i=fx.length-1;i>=0;i--){const f=fx[i];f.g.position.addScaledVector(f.v,dt);if(f.g.position.y<0){burst(f.g.position.clone().setY(.5),0xff8a2b,25,10);sfx('boom');scene.remove(f.g);fx.splice(i,1)}}
-  // linhas de velocidade e partículas ambiente
-  const len=speed*.09;for(let i=0;i<NL;i++){if(LZ[i]>P.z+10){LZ[i]=P.z-100-R()*30;LX[i]=P.x+(R()-.5)*34;LY[i]=.3+R()*10}const q=i*6;lp[q]=lp[q+3]=LX[i];lp[q+1]=lp[q+4]=LY[i];lp[q+2]=LZ[i];lp[q+5]=LZ[i]+len}lg.attributes.position.needsUpdate=true;lm.opacity=clamp((speed-14)/30,0,.55);
-  const vy=TH[cur%4].vy;for(let i=0;i<NA;i++){const q=i*3;ap[q+1]+=vy*dt;ap[q]+=Math.sin(T+i)*dt*.5;if(ap[q+1]<0)ap[q+1]+=16;if(ap[q+1]>16)ap[q+1]-=16;if(ap[q+2]>P.z+8){ap[q+2]=P.z-72;ap[q]=P.x+(R()-.5)*40}}ag.attributes.position.needsUpdate=true;
-  // velocidade de digitação
-  while(ks.length&&now-ks[0]>5000)ks.shift();const span=Math.max(3000,ks.length?now-ks[0]:3000);wpm+=(ks.length/5/(span/60000)-wpm)*clamp(dt*4,0,1);
-  if(ks.length>=12&&wpm>rec+1){const old=rec;rec=Math.round(wpm);try{localStorage.setItem('pv_rec',rec)}catch(e){}if(old>0&&now-lastCel>8000){lastCel=now;turbo=Math.max(turbo,3);ban('🏆 NOVO RECORDE<br><span style="font-size:.5em">'+rec+' palavras por minuto</span>',2600);sfx('surp')}}
-  // câmera
-  const fov=62+clamp((speed-14)/26,0,1)*22+(turbo>0?10:0);cam.fov=lerp(cam.fov,fov,.08);cam.updateProjectionMatrix();
-  const cx=P.x*.55;cam.position.set(cx+(R()-.5)*shake,4.4+(R()-.5)*shake+Math.sin(P.ph*2)*.04,P.z+9);cam.lookAt(P.x*.4,2.4,P.z-14);cam.rotateZ((LN[P.lane]-P.x)*.015);shake*=Math.pow(.02,dt);
-  // HUD
-  setTxt('score',Math.floor(score).toLocaleString('pt-BR'));setTxt('meta','🪙 '+coins+'   📖 '+learn.size+' palavras');setTxt('spdn',Math.round(wpm));setTxt('rec','🏆 recorde '+rec);setTxt('cmb',combo>1?'🔥 combo x'+combo:'');
-  $('gf').style.width=clamp(wpm/Math.max(rec,30)*100,0,100)+'%';
-  const hk=curT?curT.w.raw+curT.pos:'';if(hk!==hudKey){hudKey=hk;const t=curT;if(!t){$('word').innerHTML='';$('cat').textContent=''}else{const r=t.w.raw.toUpperCase();$('word').innerHTML='<i>'+r.slice(0,t.pos)+'</i>'+r.slice(t.pos);$('cat').textContent=TYPE[t.w.t]+(t.k==='porta'?' · portal':t.k==='bau'?' · surpresa':'')}}
-}
-cam.position.set(0,4.4,9);applyTheme(0,true);
-let lastT=performance.now();
-(function loop(t){requestAnimationFrame(loop);const dt=Math.min((t-lastT)/1000||0,.05);lastT=t;if(started)update(dt);ren.render(scene,cam)})(performance.now());
-</script>
-</body>
+      #ok.on {
+        animation: pop .7s ease-out;
+      }
+
+      @keyframes pop {
+        0% {
+          opacity: 1;
+          transform: scale(1);
+        }
+        100% {
+          opacity: 0;
+          transform: translateY(14px) scale(1.5);
+        }
+      }
+
+      @keyframes sh {
+        25% {
+          transform: translateX(-9px);
+        }
+        75% {
+          transform: translateX(9px);
+        }
+      }
+
+      /* 💬 Mensagem do rodapé: aparece e some mudando a opacity (transition suaviza). */
+      #toast {
+        left: 50%;
+        bottom: 70px;
+        transform: translateX(-50%);
+        text-align: center;
+        max-width: 90vw;
+        font-size: 18px;
+        line-height: 1.4;
+        opacity: 0;
+        transition: opacity .3s;
+        background: #05030fcc;
+        padding: 10px 20px;
+        border-radius: 10px;
+        border: 1px solid #19e3ff;
+      }
+
+      #toast.on {
+        opacity: 1;
+      }
+
+      #spd {
+        right: 16px;
+        top: 66px;
+        text-align: right;
+      }
+
+      #spdn {
+        font-size: 32px;
+        font-weight: 800;
+        line-height: 1;
+      }
+
+      #gauge {
+        width: 150px;
+        height: 8px;
+        background: #ffffff30;
+        border-radius: 4px;
+        overflow: hidden;
+        margin: 6px 0 4px auto;
+      }
+
+      #gf {
+        display: block;
+        height: 100%;
+        width: 0;
+        background: linear-gradient(90deg,#19e3ff,#ffd24a,#ff2b6b);
+      }
+
+      #cmb {
+        font-size: 20px;
+        font-weight: 800;
+        color: #ffd24a;
+        min-height: 26px;
+      }
+
+      #banner {
+        left: 50%;
+        top: 36%;
+        transform: translate(-50%,-50%);
+        font-size: clamp(26px,6vw,58px);
+        font-weight: 900;
+        letter-spacing: .14em;
+        text-align: center;
+        opacity: 0;
+        transition: opacity .4s;
+        text-shadow: 0 0 28px #ff2bd6,0 0 6px #000;
+        white-space: nowrap;
+      }
+
+      #ctl {
+        left: 16px;
+        bottom: 12px;
+        font-size: 12px;
+        opacity: .7;
+        letter-spacing: .06em;
+      }
+
+      /* ⚡ Clarão branco ao trocar de mundo. (Veja os avisos no README sobre sensibilidade à luz.) */
+      #flash {
+        position: fixed;
+        inset: 0;
+        background: #fff;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity .7s;
+      }
+
+      /* 🔘 Botões de música e efeitos, no canto superior direito. */
+      #btns {
+        position: fixed;
+        right: 14px;
+        top: 12px;
+        display: flex;
+        gap: 8px;
+      }
+
+      button {
+        font: inherit;
+        font-size: 20px;
+        border: 1px solid #19e3ff;
+        border-radius: 10px;
+        padding: 5px 12px;
+        cursor: pointer;
+        background: #0b0820cc;
+        color: #fff;
+      }
+
+      button.off {
+        opacity: .4;
+      }
+
+      button:focus-visible {
+        outline: 3px solid #ffd24a;
+      }
+
+      /* 🏁 Tela inicial: z-index alto = fica por cima de todo o resto. */
+      #start {
+        position: fixed;
+        inset: 0;
+        z-index: 5;
+        background: radial-gradient(ellipse at 50% 120%,#5a1a7a,#0b0820 60%,#05030f);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 18px;
+        text-align: center;
+        padding: 20px;
+      }
+
+      #start h1 {
+        font-size: clamp(40px,10vw,92px);
+        margin: 0;
+        line-height: .95;
+        font-weight: 900;
+        letter-spacing: .12em;
+        text-shadow: 0 0 30px #ff2bd6,0 0 60px #19e3ff;
+      }
+
+      #start p {
+        margin: 0;
+        max-width: 560px;
+        font-size: 17px;
+        line-height: 1.5;
+        opacity: .9;
+      }
+
+      #go {
+        font-size: 26px;
+        font-weight: 800;
+        letter-spacing: .2em;
+        padding: 14px 46px;
+        background: #19e3ff;
+        color: #05030f;
+        border: 0;
+        box-shadow: 0 0 30px #19e3ff;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- 🧱 HTML: só as "caixas" (div) da interface. O JavaScript escreve dentro delas
+         usando os ids (veja $("score"), $("word")...). O mundo 3D é um <canvas> criado pelo Three.js. -->
+
+    <!-- 🏁 Tela inicial (some quando você clica em CORRER) -->
+    <div id="start">
+      <h1>PALAVRA<br />VELOZ</h1>
+      <p>
+        Corra por mundos secretos. <b>Digite as palavras</b> que aparecem para destruir barreiras,
+        abrir portais e descobrir surpresas. Quanto mais rápido você digita, mais rápido você corre.
+      </p>
+      <p style="font-size: 14px; opacity: 0.7">← → (ou 1 e 0) trocam de pista · ↑ ou espaço pula · ↓ desliza</p>
+      <button id="go">CORRER</button>
+    </div>
+
+    <!-- 📊 Canto superior esquerdo: mundo, pontos, moedas e palavras aprendidas -->
+    <div class="hud" id="tl">
+      <div id="world"></div>
+      <div id="score">0</div>
+      <div id="meta"></div>
+    </div>
+
+    <!-- 🔤 Topo, no centro: a palavra que você precisa digitar (letras certas ficam coloridas) -->
+    <div class="hud" id="wordp">
+      <div id="cat"></div>
+      <div id="word"></div>
+      <!-- ✨ A palavra completa "estoura" aqui por um instante -->
+      <div id="ok"></div>
+    </div>
+
+    <!-- ⚡ Velocímetro de digitação: palavras por minuto, barra, recorde e combo -->
+    <div class="hud" id="spd">
+      <div id="spdn">0</div>
+      <div style="font-size: 11px; letter-spacing: 0.15em">PALAVRAS / MIN</div>
+      <div id="gauge"><i id="gf"></i></div>
+      <div id="rec" style="font-size: 13px">🏆 0</div>
+      <div id="cmb"></div>
+    </div>
+
+    <!-- 💬 Mensagens: toast = rodapé (significado da palavra); banner = faixa grande no meio -->
+    <div class="hud" id="toast"></div>
+    <div class="hud" id="banner"></div>
+    <div class="hud" id="ctl">← → ou 1 / 0 pista · ↑ ou espaço pular · ↓ deslizar · digite a palavra</div>
+
+    <!-- ⚡ Clarão da troca de mundo -->
+    <div id="flash"></div>
+
+    <!-- 🔘 Botões de som e voz (música e voz começam desligadas: class="off" deixa o botão apagado) -->
+    <div id="btns">
+      <button id="bm" class="off" title="Música">🎵</button>
+      <button id="bs" title="Efeitos sonoros">🔊</button>
+      <button id="bv" class="off" title="Voz lendo o significado das palavras">🗣️</button>
+    </div>
+
+    <!-- 🧊 Three.js: biblioteca que desenha gráficos 3D (r128, carregada da internet via CDN).
+         Precisa vir ANTES do nosso script, que usa a variável THREE. -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <!-- 🧠 JavaScript: o cérebro do jogo. Comece pelo GUIA DO CÓDIGO logo abaixo! -->
+    <script>
+      /* =====================================================================
+         🗺️ GUIA DO CÓDIGO (leia primeiro!)
+         Este jogo é UM arquivo HTML com 3 partes:
+           1) <style>  → a aparência (cores, tamanhos). CSS.
+           2) <body>   → só "caixas" (div) que o JavaScript preenche.
+           3) <script> → o cérebro do jogo. JavaScript. Você está aqui!
+
+         COMO O JOGO FUNCIONA (o "ciclo"):
+           • O estado do jogo vive em variáveis (speed, score, P, ents...).
+           • A função update(dt) roda ~60 vezes por segundo: move o corredor,
+             cria cenário, checa colisões e atualiza o painel.
+           • O Three.js desenha o mundo 3D a cada quadro (render).
+           • O teclado (PARTE 10) avisa o jogo: digitou uma letra? trocou de faixa?
+
+         🛠️ MODO CRIADOR: procure os comentários "MUDE AQUI". Troque um número,
+         salve e recarregue a página. O que acontece? Experimente!
+         ===================================================================== */
+
+      /* 📚 CONCEITOS PARA APRENDER (e onde achar neste arquivo)
+         • Variáveis e constantes (const, let) ........ PARTE 1 e PARTE 6
+         • Listas (arrays) e objetos ................... V (vocabulário) e TH (mundos)
+         • Funções ..................................... PARTE 7 e 8 (burst, spawnT...)
+         • Condições (if / ?:) e repetições (for) ..... update(), PARTE 11
+         • Texto com ${variável} (template literal) .... complete(), hitAlvo()
+         • Eventos (teclado, botões) ................... PARTE 10
+         • Guardar dados no navegador (localStorage) ... recorde, PARTE 6 e 11
+         • Gráficos 3D (Three.js) ...................... PARTES 2, 3, 4 e 5
+         • Desenhar com código (canvas 2D) ............. cvs(), drawSign()
+         • Sons com código (Web Audio) ................. PARTE 9
+         • Animação por quadros (requestAnimationFrame)  fim do arquivo */
+
+      /* =====================================================================
+         PARTE 1 — FERRAMENTAS E VOCABULÁRIO
+         ===================================================================== */
+      // 🔧 Ferramentas pequenas: $ acha um elemento da página pelo id; R sorteia um
+      // número entre 0 e 1; pick escolhe um item ao acaso de uma lista.
+      const $ = id => document.getElementById(id),
+        R = Math.random,
+        pick = a => a[R() * a.length | 0];
+      // 🔤 norm tira acentos e deixa minúsculo: "ÁGIL" vira "agil". Assim dá para digitar sem acento.
+      const norm = s => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      // clamp limita um número entre um mínimo e um máximo. lerp "desliza" de a até b (t vai de 0 a 1): muito usado em jogos!
+      const clamp = (v, a, b) => Math.max(a, Math.min(b, v)),
+        lerp = (a, b, t) => a + (b - a) * t;
+      // 🎨 TYPE: nome de cada tipo de palavra. TC: cor de cada tipo (0xRRGGBB é cor em hexadecimal).
+      const TYPE = { s: 'substantivo', a: 'adjetivo', v: 'verbo' },
+        TC = { s: 0x19e3ff, a: 0xff2bd6, v: 0xffd24a };
+      /* 📖 MUDE AQUI: o vocabulário! Cada item é [palavra, tipo, significado].
+         Tipos: 's' = substantivo, 'a' = adjetivo, 'v' = verbo. Acrescente as suas palavras!
+         Quanto maior a lista, menos as palavras se repetem. */
+      const V = [
+        ['raio', 's', 'descarga elétrica que cai do céu'],
+        ['fogo', 's', 'chama que queima e ilumina'],
+        ['vento', 's', 'ar em movimento'],
+        ['mapa', 's', 'desenho que mostra caminhos e lugares'],
+        ['nave', 's', 'veículo que viaja pelo espaço'],
+        ['trilha', 's', 'caminho estreito na natureza'],
+        ['correr', 'v', 'andar muito depressa'],
+        ['saltar', 'v', 'pular por cima de algo'],
+        ['veloz', 'a', 'muito rápido'],
+        ['ágil', 'a', 'leve e rápido nos movimentos'],
+        ['vencer', 'v', 'ganhar de um desafio'],
+        ['trovão', 's', 'barulho forte que vem depois do raio'],
+        ['cometa', 's', 'astro com uma cauda brilhante'],
+        ['escudo', 's', 'proteção que se carrega no braço'],
+        ['tesouro', 's', 'riquezas guardadas em segredo'],
+        ['planeta', 's', 'corpo grande que gira em torno de uma estrela'],
+        ['foguete', 's', 'nave que sobe ao espaço'],
+        ['segredo', 's', 'algo que poucos sabem'],
+        ['caverna', 's', 'buraco grande dentro da montanha'],
+        ['vulcão', 's', 'montanha que solta lava'],
+        ['floresta', 's', 'lugar cheio de árvores'],
+        ['galáxia', 's', 'imenso grupo de estrelas'],
+        ['escalar', 'v', 'subir em algo alto'],
+        ['explorar', 'v', 'conhecer um lugar procurando coisas'],
+        ['desviar', 'v', 'sair do caminho para não bater'],
+        ['descobrir', 'v', 'encontrar algo novo'],
+        ['atravessar', 'v', 'passar de um lado ao outro'],
+        ['proteger', 'v', 'defender de perigos'],
+        ['enfrentar', 'v', 'encarar um desafio sem fugir'],
+        ['conquistar', 'v', 'alcançar com esforço'],
+        ['desvendar', 'v', 'descobrir o segredo de algo'],
+        ['brilhar', 'v', 'soltar luz'],
+        ['corajoso', 'a', 'que não tem medo'],
+        ['misterioso', 'a', 'cheio de segredos'],
+        ['sombrio', 'a', 'escuro e assustador'],
+        ['poderoso', 'a', 'que tem muita força'],
+        ['lendário', 'a', 'famoso nas lendas'],
+        ['invisível', 'a', 'que não dá para ver'],
+        ['perigoso', 'a', 'que pode causar dano'],
+        ['incrível', 'a', 'difícil de acreditar de tão bom'],
+        ['silencioso', 'a', 'que não faz barulho'],
+        ['ancestral', 'a', 'muito antigo'],
+        ['labirinto', 's', 'lugar cheio de caminhos que confundem'],
+        ['relâmpago', 's', 'clarão rápido durante a tempestade'],
+        ['tempestade', 's', 'chuva forte com vento e raios'],
+        ['aventura', 's', 'experiência cheia de emoção'],
+        ['fortaleza', 's', 'construção forte para defesa'],
+        ['meteoro', 's', 'pedra do espaço que cai em chamas'],
+        ['lobo', 's', 'animal selvagem parecido com um cachorro grande'],
+        ['onda', 's', 'água do mar que sobe e desce'],
+        ['neve', 's', 'gelo branco e macio que cai do céu'],
+        ['nuvem', 's', 'massa de vapor de água no céu'],
+        ['chuva', 's', 'água que cai das nuvens'],
+        ['lago', 's', 'grande poça de água cercada de terra'],
+        ['pedra', 's', 'pedaço duro de rocha'],
+        ['areia', 's', 'grãos finos de pedra, como na praia'],
+        ['ponte', 's', 'construção que liga dois lados'],
+        ['torre', 's', 'construção alta e estreita'],
+        ['muralha', 's', 'parede enorme que protege uma cidade'],
+        ['cristal', 's', 'pedra transparente e brilhante'],
+        ['tocha', 's', 'pau com fogo na ponta para iluminar'],
+        ['chama', 's', 'língua de fogo'],
+        ['sombra', 's', 'área escura onde a luz não chega'],
+        ['brasa', 's', 'pedaço de carvão em fogo'],
+        ['lava', 's', 'pedra derretida que sai do vulcão'],
+        ['ilha', 's', 'terra cercada de água por todos os lados'],
+        ['deserto', 's', 'lugar seco com pouca água'],
+        ['oásis', 's', 'lugar com água no meio do deserto'],
+        ['selva', 's', 'floresta grande e densa'],
+        ['cipó', 's', 'planta comprida que serve de corda'],
+        ['pirata', 's', 'ladrão que anda de navio pelos mares'],
+        ['cavaleiro', 's', 'guerreiro que luta montado a cavalo'],
+        ['guerreiro', 's', 'pessoa que luta com coragem'],
+        ['explorador', 's', 'pessoa que viaja para conhecer lugares novos'],
+        ['viajante', 's', 'pessoa que vai de um lugar a outro'],
+        ['mestre', 's', 'pessoa que ensina e sabe muito'],
+        ['lenda', 's', 'história antiga cheia de mistério'],
+        ['mistério', 's', 'algo difícil de explicar'],
+        ['enigma', 's', 'pergunta difícil que esconde um segredo'],
+        ['charada', 's', 'pergunta de adivinhação'],
+        ['pergaminho', 's', 'papel antigo usado para escrever'],
+        ['bússola', 's', 'instrumento que mostra o norte'],
+        ['âncora', 's', 'peso que prende o navio no fundo do mar'],
+        ['espada', 's', 'arma com lâmina comprida'],
+        ['armadura', 's', 'roupa de metal que protege o guerreiro'],
+        ['coroa', 's', 'enfeite que reis usam na cabeça'],
+        ['joia', 's', 'enfeite caro feito de metal e pedra'],
+        ['moeda', 's', 'dinheiro de metal'],
+        ['artefato', 's', 'objeto antigo e especial'],
+        ['energia', 's', 'força que faz as coisas funcionarem'],
+        ['motor', 's', 'máquina que faz algo se mover'],
+        ['satélite', 's', 'astro ou máquina que gira em torno de um planeta'],
+        ['asteroide', 's', 'pedra enorme que viaja pelo espaço'],
+        ['estrela', 's', 'astro que brilha com luz própria'],
+        ['universo', 's', 'tudo o que existe, do menor ao maior'],
+        ['gravidade', 's', 'força que puxa as coisas para o chão'],
+        ['astronauta', 's', 'pessoa que viaja pelo espaço'],
+        ['telescópio', 's', 'aparelho para ver coisas distantes'],
+        ['velocidade', 's', 'rapidez com que algo se move'],
+        ['campeão', 's', 'quem vence uma competição'],
+        ['desafio', 's', 'tarefa difícil que testa você'],
+        ['caminho', 's', 'lugar por onde se passa'],
+        ['horizonte', 's', 'linha onde o céu parece encontrar a terra'],
+        ['tornado', 's', 'vento forte que gira como um funil'],
+        ['avalanche', 's', 'neve que desce a montanha de uma vez'],
+        ['terremoto', 's', 'tremor forte do chão'],
+        ['dinossauro', 's', 'réptil gigante que viveu há milhões de anos'],
+        ['esqueleto', 's', 'conjunto de ossos do corpo'],
+        ['fantasma', 's', 'espírito que assusta nas histórias'],
+        ['dragão', 's', 'monstro que voa e cospe fogo'],
+        ['ninja', 's', 'guerreiro silencioso e muito ágil'],
+        ['robô', 's', 'máquina que faz tarefas sozinha'],
+        ['drone', 's', 'pequeno aparelho que voa sem piloto'],
+        ['tubarão', 's', 'peixe grande e rápido do mar'],
+        ['águia', 's', 'ave grande que voa bem alto'],
+        ['tigre', 's', 'felino enorme com listras'],
+        ['falcão', 's', 'ave de caça muito veloz'],
+        ['guepardo', 's', 'o animal terrestre mais veloz do mundo'],
+        ['serpente', 's', 'cobra grande'],
+        ['aranha', 's', 'bicho de oito patas que faz teia'],
+        ['morcego', 's', 'mamífero que voa à noite'],
+        ['forte', 'a', 'que tem muita força'],
+        ['feroz', 'a', 'muito bravo e perigoso'],
+        ['gelado', 'a', 'muito frio'],
+        ['ardente', 'a', 'que queima, muito quente'],
+        ['brilhante', 'a', 'que solta ou reflete muita luz'],
+        ['gigante', 'a', 'enorme'],
+        ['minúsculo', 'a', 'muito, muito pequeno'],
+        ['profundo', 'a', 'que tem muito fundo'],
+        ['escuro', 'a', 'sem luz'],
+        ['luminoso', 'a', 'cheio de luz'],
+        ['rochoso', 'a', 'cheio de pedras'],
+        ['selvagem', 'a', 'que vive solto na natureza'],
+        ['esperto', 'a', 'que pensa rápido'],
+        ['astuto', 'a', 'esperto e cheio de truques'],
+        ['destemido', 'a', 'que não tem medo de nada'],
+        ['valente', 'a', 'corajoso'],
+        ['esquecido', 'a', 'que ninguém lembra mais'],
+        ['secreto', 'a', 'que ninguém pode saber'],
+        ['oculto', 'a', 'escondido'],
+        ['encantado', 'a', 'cheio de magia'],
+        ['mágico', 'a', 'que tem magia'],
+        ['radiante', 'a', 'que brilha de alegria ou de luz'],
+        ['imenso', 'a', 'muito grande'],
+        ['inquieto', 'a', 'que não para quieto'],
+        ['resistente', 'a', 'que aguenta muita coisa'],
+        ['indestrutível', 'a', 'que não dá para destruir'],
+        ['espacial', 'a', 'do espaço'],
+        ['colossal', 'a', 'gigantesco'],
+        ['elétrico', 'a', 'que tem eletricidade'],
+        ['flamejante', 'a', 'cheio de chamas'],
+        ['congelado', 'a', 'que virou gelo'],
+        ['sagrado', 'a', 'muito respeitado e especial'],
+        ['fantástico', 'a', 'que parece de sonho'],
+        ['extraordinário', 'a', 'fora do comum'],
+        ['pular', 'v', 'sair do chão com impulso'],
+        ['voar', 'v', 'andar pelo ar'],
+        ['nadar', 'v', 'mover-se na água'],
+        ['mergulhar', 'v', 'entrar fundo na água'],
+        ['deslizar', 'v', 'escorregar suavemente'],
+        ['girar', 'v', 'dar voltas'],
+        ['driblar', 'v', 'passar por alguém com habilidade'],
+        ['acelerar', 'v', 'ficar mais rápido'],
+        ['frear', 'v', 'diminuir a velocidade até parar'],
+        ['lançar', 'v', 'jogar com força'],
+        ['disparar', 'v', 'soltar com força ou sair correndo'],
+        ['explodir', 'v', 'estourar com barulho e força'],
+        ['derrubar', 'v', 'fazer cair'],
+        ['destruir', 'v', 'acabar com algo'],
+        ['construir', 'v', 'fazer algo juntando partes'],
+        ['inventar', 'v', 'criar algo que não existia'],
+        ['imaginar', 'v', 'criar na mente'],
+        ['pensar', 'v', 'usar a mente'],
+        ['aprender', 'v', 'passar a saber algo novo'],
+        ['ensinar', 'v', 'mostrar a alguém como se faz'],
+        ['procurar', 'v', 'tentar achar'],
+        ['encontrar', 'v', 'achar'],
+        ['resgatar', 'v', 'salvar alguém de um perigo'],
+        ['salvar', 'v', 'livrar do perigo'],
+        ['lutar', 'v', 'combater'],
+        ['resistir', 'v', 'aguentar firme'],
+        ['sobreviver', 'v', 'continuar vivo apesar do perigo'],
+        ['perseguir', 'v', 'ir atrás de alguém'],
+        ['alcançar', 'v', 'chegar até algo'],
+        ['ultrapassar', 'v', 'passar na frente'],
+        ['planar', 'v', 'voar sem bater as asas'],
+        ['aterrissar', 'v', 'pousar no chão'],
+        ['decolar', 'v', 'sair do chão voando'],
+        ['navegar', 'v', 'viajar de barco ou nave'],
+        ['pilotar', 'v', 'dirigir uma nave ou avião'],
+        ['iluminar', 'v', 'dar luz'],
+        ['escapar', 'v', 'fugir de um perigo'],
+        ['equilibrar', 'v', 'manter-se firme sem cair'],
+        ['surpreender', 'v', 'causar espanto'],
+        ['transformar', 'v', 'mudar a forma de algo'],
+        ['evoluir', 'v', 'ficar melhor com o tempo'],
+        ['superar', 'v', 'vencer um obstáculo'],
+      ['sussurrar', 'v', 'falar bem baixinho']
+      ];
+
+      /* =====================================================================
+         PARTE 2 — A CENA 3D (Three.js)
+         Para desenhar em 3D precisamos de três coisas:
+           • scene    = o "mundo" onde colocamos os objetos
+           • camera   = os "olhos" que olham esse mundo
+           • renderer = o "pintor" que desenha o que a câmera vê, no <canvas>
+         ===================================================================== */
+
+      const scene = new THREE.Scene(),
+        cam = new THREE.PerspectiveCamera(65, innerWidth / innerHeight, .1, 420);
+      // O renderizador cria o <canvas> da página e desenha a cena nele a cada quadro.
+      const ren = new THREE.WebGLRenderer({ antialias: true });
+      ren.setPixelRatio(Math.min(devicePixelRatio, 2));
+      ren.setSize(innerWidth, innerHeight);
+      document.body.prepend(ren.domElement);
+      // 🌫️ background = cor do céu. fog (neblina) esconde o que está longe e cria clima.
+      scene.background = new THREE.Color(0x120a2e);
+      scene.fog = new THREE.Fog(0x1a0f3d, 40, 150);
+      // 💡 Luzes: hemi = luz ambiente colorida; dl = luz direcional (como o sol); rl = lâmpada que acompanha o corredor.
+      const hemi = new THREE.HemisphereLight(0x8899ff, 0x221133, .9),
+        dl = new THREE.DirectionalLight(0xffffff, .7),
+        rl = new THREE.PointLight(0x19e3ff, 1.4, 20);
+      scene.add(hemi, dl, dl.target, rl);
+      // 📦 Formas (geometrias) criadas UMA vez e reaproveitadas com .scale. Reusar economiza memória e deixa o jogo rápido.
+      const BOX = new THREE.BoxGeometry(1, 1, 1),
+        CYL = new THREE.CylinderGeometry(1, 1, 1, 10),
+        CNE = new THREE.ConeGeometry(1, 1, 7),
+        SPH = new THREE.SphereGeometry(1, 14, 10),
+        ICO = new THREE.IcosahedronGeometry(1, 0),
+        OCT = new THREE.OctahedronGeometry(1, 0),
+        PLN = new THREE.PlaneGeometry(1, 1),
+        CIR = new THREE.CircleGeometry(1, 18),
+        TOR = new THREE.TorusGeometry(1, .06, 6, 48);
+      // 🧱 Materiais (a "aparência" de cada peça) ficam num cache (MC): se já existe um material dessa cor, reaproveitamos.
+      const MC = {};
+      // std = material com luz e sombra; neon = cor pura que "brilha"; gl = brilho transparente (blending aditivo soma luz).
+      const std = (c, e = 0, ei = 1) => MC['s' + c + '_' + e + '_' + ei] || (MC['s' + c + '_' + e + '_' + ei] = new THREE.MeshStandardMaterial({
+        color: c,
+        roughness: .55,
+        metalness: .35,
+        emissive: e,
+        emissiveIntensity: ei,
+        flatShading: true
+      }));
+      const neon = c => MC['n' + c] || (MC['n' + c] = new THREE.MeshBasicMaterial({ color: c }));
+      const gl = (c, o = .3) => MC['g' + c + '_' + o] || (MC['g' + c + '_' + o] = new THREE.MeshBasicMaterial({
+        color: c,
+        transparent: true,
+        opacity: o,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        side: THREE.DoubleSide
+      }));
+      // 🔨 mk monta uma peça (Mesh = forma + material): posiciona, dimensiona e coloca no grupo. bx, cy, cn e sp são atalhos para caixa, cilindro, cone e esfera.
+      const mk = (g, geo, m, x, y, z, sx, sy, sz) => {
+        const o = new THREE.Mesh(geo, m);
+        o.position.set(x, y, z);
+        o.scale.set(sx, sy, sz);
+        g.add(o);
+        return o;
+      };
+      const bx = (g, m, x, y, z, w, h, d) => mk(g, BOX, m, x, y, z, w, h, d),
+        cy = (g, m, x, y, z, r, h) => mk(g, CYL, m, x, y, z, r, h, r),
+        cn = (g, m, x, y, z, r, h) => mk(g, CNE, m, x, y, z, r, h, r),
+        sp = (g, m, x, y, z, r) => mk(g, SPH, m, x, y, z, r, r, r);
+      // ✨ glowS cria um "brilho" (sprite): desenhamos um degradê redondo num canvas 2D e o usamos como textura.
+      const gc = document.createElement('canvas');
+      gc.width = gc.height = 64;
+      {
+        const x = gc.getContext('2d'),
+          g = x.createRadialGradient(32, 32, 0, 32, 32, 32);
+        g.addColorStop(0, 'rgba(255,255,255,1)');
+        g.addColorStop(.3, 'rgba(255,255,255,.35)');
+        g.addColorStop(1, 'rgba(255,255,255,0)');
+        x.fillStyle = g;
+        x.fillRect(0, 0, 64, 64);
+      }
+      const gtex = new THREE.CanvasTexture(gc),
+        SMC = {};
+      const glowS = (g, c, s, x, y, z, o = .9) => {
+        const k = c + '_' + o,
+          sp = new THREE.Sprite(SMC[k] || (SMC[k] = new THREE.SpriteMaterial({
+            map: gtex,
+            color: c,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false,
+            transparent: true,
+            opacity: o
+        })));
+        sp.scale.set(s, s, 1);
+        sp.position.set(x, y, z);
+        g.add(sp);
+        return sp;
+      };
+
+      /* =====================================================================
+         PARTE 3 — O MUNDO: pista, chão, estrelas e partículas
+         ===================================================================== */
+      // 🖼️ cvs cria uma textura desenhando num canvas 2D (uma "folha de papel digital").
+      // RepeatWrapping faz a textura se repetir; mexer no offset faz ela "andar".
+      function cvs(w, h, f) {
+        const c = document.createElement('canvas');
+        c.width = w;
+        c.height = h;
+        f(c.getContext('2d'), w, h);
+        const t = new THREE.CanvasTexture(c);
+        t.wrapS = t.wrapT = THREE.RepeatWrapping;
+        t.anisotropy = 4;
+        return t;
+      }
+      // 🛣️ Texturas da pista (asfalto + faixas) e do chão (grade). O jogo mexe no offset delas para parecer que o chão corre.
+      const roadT = cvs(64, 256, (x, w, h) => {
+        x.fillStyle = '#262626';
+        x.fillRect(0, 0, w, h);
+        x.fillStyle = '#fff';
+        x.fillRect(1, 0, 3, h);
+        x.fillRect(w - 4, 0, 3, h);
+        [22, 41].forEach(u => x.fillRect(u, 0, 2, h * .5));
+      });
+      roadT.repeat.set(1, 40);
+      const gridT = cvs(64, 64, (x, w, h) => {
+        x.fillStyle = '#000';
+        x.fillRect(0, 0, w, h);
+        x.fillStyle = '#fff';
+        x.fillRect(0, 0, w, 2);
+        x.fillRect(0, 0, 2, h);
+      });
+      gridT.repeat.set(75, 75);
+      const road = new THREE.Mesh(new THREE.PlaneGeometry(10, 400), new THREE.MeshBasicMaterial({ map: roadT, color: 0x19e3ff }));
+      road.rotation.x = -Math.PI / 2;
+      road.position.y = .02;
+      scene.add(road);
+      const ground = new THREE.Mesh(new THREE.PlaneGeometry(600, 600), new THREE.MeshBasicMaterial({ map: gridT, color: 0x101030 }));
+      ground.rotation.x = -Math.PI / 2;
+      scene.add(ground);
+      // ⭐ Estrelas: 500 pontos espalhados numa esfera enorme (só a metade de cima). Points = nuvem de pontos.
+      const NS = 500,
+        spos = new Float32Array(NS * 3);
+      for (let i = 0; i < NS; i++) {
+        const a = R() * 6.283,
+          e = R() * 1.4 + .05;
+        spos[i * 3] = Math.cos(a) * Math.cos(e) * 300;
+        spos[i * 3 + 1] = Math.sin(e) * 300;
+        spos[i * 3 + 2] = Math.sin(a) * Math.cos(e) * 300;
+      }
+      const sg = new THREE.BufferGeometry();
+      sg.setAttribute('position', new THREE.BufferAttribute(spos, 3));
+      const stars = new THREE.Points(sg, new THREE.PointsMaterial({
+        color: 0xffffff,
+        size: 1.6,
+        sizeAttenuation: false,
+        transparent: true,
+        opacity: .5,
+        fog: false,
+        depthWrite: false
+      }));
+      stars.frustumCulled = false;
+      scene.add(stars);
+      // 💨 Linhas de velocidade: ficam mais visíveis quanto mais rápido o corredor vai. Os vértices ficam em um Float32Array (lista de números).
+      const NL = 90,
+        lp = new Float32Array(NL * 6),
+        lg = new THREE.BufferGeometry(),
+        LX = [],
+        LY = [],
+        LZ = [];
+      lg.setAttribute('position', new THREE.BufferAttribute(lp, 3));
+      for (let i = 0; i < NL; i++) {
+        LX[i] = (R() - .5) * 34;
+        LY[i] = .3 + R() * 10;
+        LZ[i] = -R() * 120;
+      }
+      const lm = new THREE.LineBasicMaterial({
+        color: 0xffffff,
+        transparent: true,
+        opacity: 0,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      }),
+        lns = new THREE.LineSegments(lg, lm);
+      lns.frustumCulled = false;
+      scene.add(lns);
+      // 🌧️ Partículas do ambiente: chuva na cidade, vaga-lumes na floresta, brasas no vulcão, poeira no espaço.
+      const NA = 220,
+        ap = new Float32Array(NA * 3),
+        ag = new THREE.BufferGeometry();
+      ag.setAttribute('position', new THREE.BufferAttribute(ap, 3));
+      for (let i = 0; i < NA; i++) {
+        ap[i * 3] = (R() - .5) * 40;
+        ap[i * 3 + 1] = R() * 16;
+        ap[i * 3 + 2] = -R() * 80;
+      }
+      const am = new THREE.PointsMaterial({
+        color: 0x19e3ff,
+        size: .4,
+        transparent: true,
+        opacity: .8,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      }),
+        apt = new THREE.Points(ag, am);
+      apt.frustumCulled = false;
+      scene.add(apt);
+
+      /* =====================================================================
+         PARTE 4 — O CORREDOR
+         LN = posição X das 3 faixas. P = estado do jogador:
+         x/lane = onde está, y/vy = altura e velocidade do pulo, z = distância
+         percorrida (negativo = para a frente), slide = tempo deslizando,
+         ph = fase da animação das pernas.
+         ===================================================================== */
+
+      const LN = [-3.2, 0, 3.2],
+        P = { x: 0, lane: 1, y: 0, vy: 0, z: 0, slide: 0, ph: 0 };
+      // 🤖 O corredor é um Group (uma "pasta" de peças): rn se move pela pista e body guarda o modelo.
+      const rn = new THREE.Group();
+      scene.add(rn);
+      const body = new THREE.Group();
+      rn.add(body);
+      body.rotation.y = Math.PI;
+      const SUIT = std(0x161826, 0x0a0c18, 1),
+        ACC = neon(0x19e3ff);
+      bx(body, SUIT, 0, 2, 0, .9, 1.1, .5);
+      bx(body, ACC, 0, 2.15, .26, .55, .1, .02);
+      bx(body, ACC, 0, 1.85, .26, .55, .06, .02);
+      sp(body, SUIT, 0, 2.95, 0, .38);
+      bx(body, ACC, 0, 2.97, .3, .5, .12, .1);
+      bx(body, std(0x23263a), 0, 2.1, -.4, .6, .9, .3);
+      const flame = glowS(body, 0xff8a2b, 1.6, 0, 1.7, -.55, .95);
+      // pv cria um "pivô": o ponto onde braço/perna é preso para girar como uma articulação.
+      const pv = (x, y) => {
+        const p = new THREE.Group();
+        p.position.set(x, y, 0);
+        body.add(p);
+        return p;
+      };
+      const lLg = pv(-.25, 1.45),
+        lRg = pv(.25, 1.45),
+        aLg = pv(-.62, 2.5),
+        aRg = pv(.62, 2.5);
+      [lLg, lRg].forEach(p => {
+        cy(p, SUIT, 0, -.55, 0, .17, 1.1);
+        bx(p, ACC, 0, -1, .12, .2, .08, .2);
+      });
+      [aLg, aRg].forEach(p => cy(p, SUIT, 0, -.45, 0, .13, .9));
+      // ⚫ Sombra falsa: um círculo escuro no chão (mais barato que calcular sombras de verdade).
+      const blob = mk(rn, CIR, new THREE.MeshBasicMaterial({ color: 0, transparent: true, opacity: .5 }), 0, .04, 0, .8, .8, 1);
+      blob.rotation.x = -Math.PI / 2;
+
+      /* =====================================================================
+         PARTE 5 — OS MUNDOS (temas)
+         Cada mundo é um objeto com: n = nome, sky/fog/gr/acc = cores, vy = movimento
+         das partículas, st = brilho das estrelas e b = FUNÇÃO que constrói UM item
+         de cenário (prédio, árvore, rocha...). s = lado da pista (-1 ou 1).
+         🛠️ MUDE AQUI: troque as cores ou crie um quinto mundo copiando um bloco!
+         ===================================================================== */
+
+      const TH = [
+        {
+          // 🌃 Mundo 1: prédios escuros com faixas de neon e janelas acesas.
+          n: 'Cidade Neon',
+          sky: 0x120a2e,
+          fog: 0x1a0f3d,
+          gr: 0x2a1a6a,
+          acc: 0xff2bd6,
+          vy: -24,
+          st: .5,
+          b: s => {
+            const g = new THREE.Group(),
+              w = 5 + R() * 6,
+              h = 10 + R() * 38,
+              d = 7 + R() * 5,
+              c = R() < .5 ? 0xff2bd6 : 0x19e3ff;
+            bx(g, std(0x0d0a22, 0x05030f), 0, h / 2, 0, w, h, d);
+            for (let i = 0, n = 2 + (R() * 3 | 0); i < n; i++) bx(g, neon(c), 0, 2 + R() * (h - 3), 0, w + .15, .22, d + .15);
+            for (let i = 0; i < 7; i++) bx(g, neon(0xffe9a8), -s * (w / 2 + .05), 2 + R() * (h - 3), (R() - .5) * (d - 1), .1, 1.1, .6);
+            if (R() < .35) mk(g, PLN, gl(c, .55), -s * (w / 2 + .12), h * .55, 0, 6, 3, 1).rotation.y = -s * Math.PI / 2;
+            if (R() < .4) glowS(g, c, 12, 0, h + 2, 0, .8);
+            return g;
+          }
+        },
+        {
+          // 🌲 Mundo 2: árvores altas com copas escuras e cogumelos brilhantes.
+          n: 'Floresta Ancestral',
+          sky: 0x04160f,
+          fog: 0x0a2a1d,
+          gr: 0x1f6a45,
+          acc: 0x3dffb0,
+          vy: .7,
+          st: .3,
+          b: s => {
+            const g = new THREE.Group(),
+              h = 12 + R() * 22,
+              r = .6 + R() * .8;
+            cy(g, std(0x1a120c), 0, h / 2, 0, r, h);
+            for (let i = 0; i < 3; i++) cn(g, std(0x0b3a24, 0x0a5a36, .5), 0, h * .55 + i * h * .16, 0, 5 - i * 1.2, h * .34);
+            if (R() < .6) {
+              const c = R() < .5 ? 0x3dffb0 : 0xb2ff3d;
+              sp(g, neon(c), -s * 3, .5, (R() - .5) * 4, .6 + R() * .5);
+              glowS(g, c, 5, -s * 3, .8, 0, .7);
+            }
+            return g;
+          }
+        },
+        {
+          // 🌋 Mundo 3: rochas pontudas e poças de lava incandescente.
+          n: 'Vulcão',
+          sky: 0x2a0a05,
+          fog: 0x4a1408,
+          gr: 0x7a2a10,
+          acc: 0xff6a1a,
+          vy: 3,
+          st: .15,
+          b: s => {
+            const g = new THREE.Group(),
+              h = 8 + R() * 20,
+              r = 2 + R() * 4;
+            cn(g, std(0x2a1812, 0x4a1005, .6), 0, h / 2, 0, r, h);
+            if (R() < .7) {
+              const q = 3 + R() * 3;
+              mk(g, CIR, neon(0xff6a1a), -s * (r + 3), .06, R() * 4, q, q, 1).rotation.x = -Math.PI / 2;
+              glowS(g, 0xff6a1a, 12, -s * (r + 3), 1, 0, .7);
+            }
+            sp(g, std(0x33201a), s * 3, 1, R() * 6, 1 + R() * 2);
+            return g;
+          }
+        },
+        {
+          // 🚀 Mundo 4: asteroides girando, cristais e planetas com anéis.
+          n: 'Estação Espacial',
+          sky: 0x02030a,
+          fog: 0x070b1f,
+          gr: 0x1a2a7a,
+          acc: 0x5b7bff,
+          vy: 0,
+          st: 1,
+          b: s => {
+            const g = new THREE.Group();
+            if (R() < .14) {
+              const r = 14 + R() * 14,
+                c = pick([0x5b7bff, 0xb36bff, 0xff6a8a, 0x3dd6c4]),
+                px = s * (35 + R() * 20),
+                py = 18 + R() * 20;
+              sp(g, std(c, c, .3), px, py, -10, r);
+              mk(g, TOR, gl(c, .45), px, py, -10, r * 1.7, r * 1.7, .2).rotation.x = 1.2;
+            } else {
+              const r = 1.5 + R() * 3,
+                a = mk(g, ICO, std(0x2a3150, 0x1a2050, .4), s * (8 + R() * 14), 2 + R() * 24, 0, r, r * (.7 + R() * .5), r);
+              g.userData.sp = a;
+              if (R() < .35) {
+                const c = pick([0x5b7bff, 0xb36bff]);
+                mk(g, OCT, neon(c), -s * 5, 1 + R() * 3, R() * 4, .6, 1.6, .6);
+                glowS(g, c, 5, -s * 5, 2, 0, .7);
+              }
+            }
+            return g;
+          }
+      }
+      ];
+      // cur = mundo atual (onde o jogador está); st = mundo usado para GERAR cenário novo. tSky, tFog... = cores-alvo da transição.
+      let cur = 0,
+        st = 0;
+      const tSky = new THREE.Color(),
+        tFog = new THREE.Color(),
+        tGr = new THREE.Color(),
+        tAcc = new THREE.Color();
+      let tStar = .5;
+      // 🎨 applyTheme só escolhe as cores-alvo. No update() as cores deslizam até elas (lerp), então a troca de mundo é suave.
+      function applyTheme(i, now) {
+        const t = TH[i % 4];
+        tSky.set(t.sky);
+        tFog.set(t.fog);
+        tGr.set(t.gr);
+        tAcc.set(t.acc);
+        tStar = t.st;
+        if (now) {
+          scene.background.copy(tSky);
+          scene.fog.color.copy(tFog);
+          ground.material.color.copy(tGr);
+          road.material.color.copy(tAcc);
+        }
+        $('world').textContent = 'MUNDO ' + (level + 1) + ' · ' + t.n;
+      }
+
+      /* =====================================================================
+         PARTE 6 — ESTADO DO JOGO (tudo o que muda enquanto se joga)
+         started = o jogo começou? | T = tempo total | speed = velocidade atual
+         level = nível | score, coins, combo = pontos | turbo, slow, stum = efeitos
+         temporários (segundos que faltam) | shake = tremor da câmera
+         tgtN = desafios desde o último portal | sz e tz = próxima posição onde gerar
+         cenário e desafio | lim = limite de geração (o portal fecha o caminho)
+         door = portal atual | curT = palavra que o jogador está digitando
+         wpm = palavras por minuto | rec = recorde
+         voiceOn = a voz lê os significados?
+         ===================================================================== */
+
+      let started = false,
+        voiceOn = false,
+        T = 0,
+        speed = 0,
+        level = 0,
+        score = 0,
+        coins = 0,
+        combo = 0,
+        turbo = 0,
+        slow = 0,
+        stum = 0,
+        shake = 0,
+        tgtN = 0,
+        sz = -20,
+        tz = -70,
+        lim = -1e9,
+        door = null,
+        curT = null,
+        hudKey = '',
+        wpm = 0,
+        rec = 0,
+        lastCel = 0,
+        bt1,
+        bt2,
+        lastHud = {};
+      // Listas: ents = coisas interativas (alvos, moedas, blocos...) | scn = cenário | parts = partículas | fx = meteoros | learn = palavras aprendidas | rev = palavras erradas (voltam depois!) | ks = horário de cada tecla certa.
+      const ents = [],
+        scn = [],
+        parts = [],
+        fx = [],
+        learn = new Set(),
+        rev = [],
+        recent = [],
+        ks = [];
+      // 💾 localStorage guarda o recorde no navegador. try/catch evita erro se o navegador bloquear o armazenamento.
+      try {
+        rec = +localStorage.getItem('pv_rec') || 0;
+      } catch (e) {} const mkW = w => ({ raw: w[0], n: norm(w[0]), t: w[1], m: w[2] });
+      // 🎯 pickWord sorteia uma palavra: o tamanho depende do nível, evita repetir as últimas 30 e, às vezes (30%), traz uma palavra errada para rever.
+      // 🛠️ MUDE AQUI: os intervalos [4, 7], [5, 8]... controlam o tamanho das palavras em cada nível.
+      function pickWord(long) {
+        const[a, b] = level < 1 ? [4, 7] : level < 2 ? [5, 8] : [6, 11],
+          lo = long ? a + 2 : a,
+          hi = long ? b + 3 : b;
+        if (rev.length && R() < .3) return rev.shift();
+        let c = V.filter(w => {
+          const n = norm(w[0]).length;
+          return n >= lo && n <= hi && !recent.includes(w[0]);
+        });
+        if (!c.length) c = V;
+        const w = pick(c);
+        recent.push(w[0]);
+        if (recent.length > 30) recent.shift();
+        return w;
+      }
+      // 💬 toast = mensagem no rodapé; ban = faixa grande no meio da tela. As duas usam setTimeout para sumir depois de alguns segundos.
+      function toast(h, ms = 4200) {
+        const b = $('toast');
+        b.innerHTML = h;
+        b.classList.add('on');
+        clearTimeout(bt1);
+        bt1 = setTimeout(() => b.classList.remove('on'), ms);
+      }
+      function ban(t, ms = 2200) {
+        const b = $('banner');
+        b.innerHTML = t;
+        b.style.opacity = 1;
+        clearTimeout(bt2);
+        bt2 = setTimeout(() => b.style.opacity = 0, ms);
+      }
+      // 🗣️ speak lê um texto em voz alta com a síntese de fala do navegador (speechSynthesis). Só funciona se o botão 🗣️ estiver ligado. lang = "pt-BR" pede uma voz em português.
+      function speak(txt) {
+        if (!voiceOn || !window.speechSynthesis) return;
+        speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(txt);
+        u.lang = 'pt-BR';
+        const v = speechSynthesis.getVoices().find(x => x.lang && x.lang.toLowerCase().startsWith('pt'));
+        if (v) u.voice = v;
+        speechSynthesis.speak(u);
+      }
+
+      /* =====================================================================
+         PARTE 7 — PARTÍCULAS E SURPRESAS
+         ===================================================================== */
+      // hex converte um número de cor (0xff0000) em texto ("#ff0000") para usar no CSS.
+      const hex = c => '#' + c.toString(16).padStart(6, '0');
+      const PC = [0x19e3ff, 0xff2bd6, 0xffd24a, 0xff3b3b, 0xffffff, 0x69ffb0];
+      // 💥 burst solta cubinhos coloridos em direções aleatórias (uma explosão). Depois a gravidade os puxa para baixo (veja update).
+      function burst(p, col, n = 40, s = 9) {
+        for (let i = 0; i < n; i++) {
+          const m = new THREE.Mesh(BOX, neon(R() < .7 ? col : pick(PC)));
+          m.position.copy(p);
+          m.scale.setScalar(.35);
+          const a = R() * 6.28,
+            b = R() * 3.14,
+            k = s * (.4 + R() * .8);
+          parts.push({
+            m,
+            l: .8 + R() * .8,
+            v: new THREE.Vector3(Math.cos(a) * Math.sin(b) * k, Math.cos(b) * k * .8 + 3, Math.sin(a) * Math.sin(b) * k - speed * .4)
+          });
+          scene.add(m);
+        }
+      }
+      // ☄️ meteors cria 14 bolas de fogo que caem do céu. Cada uma é guardada em fx com sua velocidade.
+      function meteors() {
+        for (let i = 0; i < 14; i++) {
+          const g = new THREE.Group();
+          sp(g, neon(0xffa040), 0, 0, 0, .8);
+          glowS(g, 0xff7a1a, 7, 0, 0, 0, .9);
+          g.position.set(P.x + (R() - .5) * 50, 45 + R() * 25, P.z - 25 - R() * 80);
+          scene.add(g);
+          fx.push({ g, v: new THREE.Vector3((R() - .5) * 8, -48 - R() * 20, -8) });
+        }
+      }
+      // 🎁 surprise sorteia o prêmio do baú: turbo, moedas, meteoros ou câmera lenta. R() * 4 | 0 = número inteiro de 0 a 3.
+      function surprise() {
+        sfx('surp');
+        const r = R() * 4 | 0;
+        if (r === 0) {
+          turbo = 6;
+          ban('SURPRESA: TURBO!');
+        } else if (r === 1) {
+          coins += 25;
+          score += 250;
+          ban('CHUVA DE MOEDAS!');
+          burst(new THREE.Vector3(P.x, 2, P.z - 4), 0xffd24a, 90, 12);
+        } else if (r === 2) {
+          score += 150;
+          meteors();
+          ban('CHUVA DE METEOROS!');
+        } else {
+          slow = 5;
+          ban('CÂMERA LENTA!');
+        }
+      }
+
+      /* =====================================================================
+         PARTE 8 — OBJETOS INTERATIVOS: placas, alvos, baús, portais, moedas, blocos
+         ===================================================================== */
+      // ✏️ drawSign desenha a palavra numa placa (canvas 2D). As letras já digitadas ficam coloridas.
+      function drawSign(e) {
+        const c = e.cv,
+          x = c.getContext('2d'),
+          W = c.width,
+          H = c.height,
+          t = e.w.raw.toUpperCase(),
+          px = Math.min(80, 710 / t.length);
+        x.clearRect(0, 0, W, H);
+        x.fillStyle = 'rgba(5,5,20,.78)';
+        x.fillRect(0, 0, W, H);
+        x.strokeStyle = hex(e.col);
+        x.lineWidth = 6;
+        x.strokeRect(3, 3, W - 6, H - 6);
+        x.font = 'bold ' + px + 'px "Segoe UI",sans-serif';
+        x.textBaseline = 'middle';
+        x.textAlign = 'left';
+        let cx = (W - x.measureText(t).width) / 2;
+        for (let i = 0; i < t.length; i++) {
+          x.fillStyle = i < e.pos ? hex(e.col) : '#fff';
+          x.fillText(t[i], cx, H / 2 + 4);
+          cx += x.measureText(t[i]).width;
+        }
+        e.tex.needsUpdate = true;
+      }
+      // mkSign cria a placa 3D: um plano com a textura do canvas.
+      function mkSign(g, e, w, h, y, z) {
+        e.cv = document.createElement('canvas');
+        e.cv.width = 512;
+        e.cv.height = 128;
+        e.tex = new THREE.CanvasTexture(e.cv);
+        drawSign(e);
+        mk(g, PLN, new THREE.MeshBasicMaterial({ map: e.tex, transparent: true }), 0, y, z, w, h, 1);
+      }
+      // 🎯 spawnT cria um desafio na posição z: "alvo" (barreira), "bau" (surpresa) ou "porta" (portal).
+      // 🛠️ MUDE AQUI: tgtN >= 8 faz o portal aparecer a cada 8 desafios. Que tal 4?
+      function spawnT(z) {
+        tgtN++;
+        const kind = tgtN >= 8 ? 'porta' : tgtN % 5 === 3 ? 'bau' : 'alvo',
+          w = mkW(pickWord(kind === 'porta')),
+          col = kind === 'bau' ? 0xffc83d : kind === 'porta' ? 0xff2bd6 : TC[w.t],
+          g = new THREE.Group(),
+          e = { k: kind, z, g, w, col, pos: 0, done: 0, open: 0 };
+        g.position.z = z;
+        if (kind === 'alvo') {
+          const m = std(0x1a1a28, col, .8);
+          [-5.4, 5.4].forEach(x => bx(g, m, x, 3, 0, .5, 6, .5));
+          bx(g, m, 0, 6, 0, 11.3, .5, .5);
+          mk(g, PLN, gl(col, .22), 0, 3, 0, 10.4, 6, 1);
+          glowS(g, col, 10, 0, 3, 0, .5);
+          mkSign(g, e, 8, 2, 7.4, .2);
+        } else if (kind === 'bau') {
+          bx(g, std(0x8a5a10, 0xffc83d, .7), 0, .8, 0, 2.4, 1.6, 1.6);
+          bx(g, neon(0xffc83d), 0, 1.65, 0, 2.5, .2, 1.7);
+          e.star = mk(g, OCT, neon(0xffc83d), 0, 3.2, 0, .7, 1, .7);
+          glowS(g, 0xffc83d, 8, 0, 1.8, 0, .8);
+          mkSign(g, e, 6, 1.5, 5.4, .2);
+        } else {
+          const m = std(0x14141f, 0xff2bd6, .9),
+            w2 = std(0x0b0b16, 0x120a25, 1);
+          [-5.4, 5.4].forEach(x => bx(g, m, x, 8, 0, 1, 16, 1.2));
+          bx(g, m, 0, 16.2, 0, 11.8, 1.2, 1.2);
+          bx(g, w2, -23.4, 15, 0, 35, 30, 1);
+          bx(g, w2, 23.4, 15, 0, 35, 30, 1);
+          bx(g, w2, 0, 24.6, 0, 12, 16, 1);
+          bx(g, neon(0xff2bd6), -23.4, 2, .55, 35, .3, .1);
+          bx(g, neon(0x19e3ff), 23.4, 2, .55, 35, .3, .1);
+          bx(g, neon(0x19e3ff), -23.4, 28, .55, 35, .3, .1);
+          bx(g, neon(0xff2bd6), 23.4, 28, .55, 35, .3, .1);
+          const pm = std(0x1b1b2b, 0xff2bd6, .5);
+          e.pl = bx(g, pm, -2.7, 6.5, .2, 5.4, 13, .6);
+          e.pr = bx(g, pm, 2.7, 6.5, .2, 5.4, 13, .6);
+          e.gl = glowS(g, 0xffffff, 30, 0, 7, -3, 0);
+          mkSign(g, e, 10, 2.5, 19, .9);
+        }
+        scene.add(g);
+        ents.push(e);
+        if (kind === 'porta') {
+          door = e;
+          lim = z - 2;
+        }
+      }
+      // 🪙 Moeda: um cilindro fino que gira. Quando o corredor encosta nela (veja update), ela é coletada.
+      function coin(x, z) {
+        const g = new THREE.Group(),
+          c = mk(g, CYL, neon(0xffd24a), 0, 1.3, 0, .5, .12, .5);
+        c.rotation.x = Math.PI / 2;
+        glowS(g, 0xffd24a, 2.2, 0, 1.3, 0, .6);
+        g.position.set(x, 0, z);
+        scene.add(g);
+        ents.push({ k: 'moeda', z, x, g });
+      }
+      // 🧱 Bloco vermelho: pule (↑) ou troque de faixa. Os baixos dá para pular; os altos, não.
+      function block(x, z) {
+        const tall = R() < .4,
+          h = tall ? 4.2 : 1.4,
+          g = new THREE.Group();
+        bx(g, std(0x20202e, 0xff3b3b, .6), 0, h / 2, 0, 2.6, h, 1.6);
+        bx(g, neon(0xff3b3b), 0, h, 0, 2.7, .12, 1.7);
+        g.position.set(x, 0, z);
+        scene.add(g);
+        ents.push({ k: 'bloco', z, x, g, h });
+      }
+      // nearT diz se há um desafio por perto, para não colocar blocos e moedas em cima dele.
+      const nearT = z => ents.some(e => e.w && Math.abs(e.z - z) < 16);
+      // 🏗️ spawnRow cria uma "fatia" de cenário (prédios, árvores...) dos dois lados da pista, mais moedas e blocos de vez em quando.
+      function spawnRow(z) {
+        const t = TH[st % 4];
+        [-1, 1].forEach(s => {
+          if (R() < .85) {
+            const o = t.b(s);
+            o.position.set(s * (7.5 + R() * 16), 0, z + R() * 8);
+            scene.add(o);
+            scn.push(o);
+          }
+        });
+        if (R() < .1 && !nearT(z)) {
+          const l = R() * 3 | 0;
+          for (let i = 0; i < 6; i++) coin(LN[l], z - i * 2.4);
+        } else if (z < -110 && R() < .12 && !nearT(z) && Math.abs(z - tz) > 16) block(LN[R() * 3 | 0], z);
+      }
+      // 🗑️ kill remove um objeto do jogo: tira da cena, da lista e libera a textura.
+      function kill(t) {
+        scene.remove(t.g);
+        const i = ents.indexOf(t);
+        if (i >= 0) ents.splice(i, 1);
+        if (t.tex) t.tex.dispose();
+      }
+      // ✨ popWord mostra a palavra COMPLETA e colorida por um instante (animação "pop" no CSS). Sem isso, ao digitar a última letra a próxima palavra já ocuparia o lugar dela!
+      function popWord(t) {
+        const o = $('ok');
+        o.textContent = t.w.raw.toUpperCase();
+        o.style.color = hex(t.col);
+        o.classList.remove('on');
+        void o.offsetWidth;
+        o.classList.add('on');
+      }
+      // 🏆 complete roda quando a palavra é digitada por inteiro: pontos, combo, explosão, mensagem com o significado e o efeito de cada tipo (alvo, baú ou portal).
+      function complete(t) {
+        t.done = 1;
+        const w = t.w;
+        learn.add(w.raw);
+        popWord(t);
+        speak(w.raw + '. ' + TYPE[w.t] + '. ' + w.m);
+        combo++;
+        score += Math.round((t.k === 'porta' ? 150 : 50) * (1 + Math.min(combo, 20) * .1));
+        burst(new THREE.Vector3(0, 3, t.z), t.col, 45, 10);
+        toast(`<b style="color:${hex(t.col)}">${w.raw.toUpperCase()}</b> · ${TYPE[w.t]}<br>${w.m}`);
+        if (t.k === 'alvo') {
+          sfx('boom');
+          shake = .35;
+          kill(t);
+        } else if (t.k === 'bau') {
+          surprise();
+          kill(t);
+        } else {
+          sfx('door');
+          t.opening = 1;
+          lim = -1e9;
+          st++;
+          tgtN = 0;
+          shake = .5;
+          ban('PORTAL ABERTO!', 1600);
+        }
+        if (combo % 5 === 0) {
+          turbo = Math.max(turbo, 3.5);
+          ban('TURBO!', 1200);
+        }
+        hudKey = '';
+      }
+      // 😵 hitAlvo roda quando o corredor bate num alvo sem a palavra ter sido digitada: tropeça, perde o combo e a palavra volta mais tarde (rev).
+      function hitAlvo(e) {
+        combo = 0;
+        stum = 1.2;
+        shake = .9;
+        rev.push([e.w.raw, e.w.t, e.w.m]);
+        burst(new THREE.Vector3(P.x, 2, e.z), 0xff3b3b, 50, 12);
+        sfx('hit');
+        toast(`Quase! <b>${e.w.raw.toUpperCase()}</b> · ${TYPE[e.w.t]}<br>${e.w.m}`);
+        speak('Quase! ' + e.w.raw + '. ' + TYPE[e.w.t] + '. ' + e.w.m);
+        kill(e);
+        hudKey = '';
+      }
+      // 🌀 crossTheme: o corredor atravessou o portal! Pisca a tela, sobe de nível e troca o mundo.
+      function crossTheme() {
+        cur++;
+        level++;
+        applyTheme(cur);
+        const f = $('flash');
+        f.style.transition = 'none';
+        f.style.opacity = .95;
+        requestAnimationFrame(() => {
+          f.style.transition = 'opacity .8s';
+          f.style.opacity = 0;
+        });
+        ban('MUNDO ' + (level + 1) + '<br><span style="font-size:.5em">' + TH[cur % 4].n.toUpperCase() + '</span>', 3000);
+        score += 300;
+        sfx('surp');
+      }
+
+      /* =====================================================================
+         PARTE 9 — SOM (Web Audio): tudo é sintetizado por código, sem arquivos!
+         Um "oscilador" gera uma onda (square, sawtooth, triangle, sine) numa
+         frequência (Hz). Uma envoltória de volume faz o som começar e acabar.
+         ===================================================================== */
+      // AC = contexto de áudio | mG = volume da música | sG = volume dos efeitos | nb = ruído branco.
+      let AC,
+        mG,
+        sG,
+        nb,
+        musicOn = false,
+        sfxOn = true,
+        stp = 0,
+        mt;
+      // ac cria o sistema de áudio. O navegador só permite som depois de um clique, por isso é chamado no botão CORRER.
+      function ac() {
+        if (!AC) {
+          AC = new(window.AudioContext || window.webkitAudioContext)();
+          mG = AC.createGain();
+          mG.gain.value = .13;
+          mG.connect(AC.destination);
+          sG = AC.createGain();
+          sG.gain.value = .25;
+          sG.connect(AC.destination);
+          nb = AC.createBuffer(1, AC.sampleRate * .6, AC.sampleRate);
+          const d = nb.getChannelData(0);
+          for (let i = 0; i < d.length; i++) d[i] = R() * 2 - 1;
+        }
+        if (AC.state === 'suspended') AC.resume();
+      }
+      // tone toca uma nota: frequência f, duração d, tipo de onda, volume v. f2 faz a nota deslizar de f até f2.
+      function tone(f, d, ty, g, v, t0 = 0, f2) {
+        const o = AC.createOscillator(),
+          e = AC.createGain(),
+          t = AC.currentTime + t0;
+        o.type = ty;
+        o.frequency.setValueAtTime(f, t);
+        if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + d);
+        e.gain.setValueAtTime(0, t);
+        e.gain.linearRampToValueAtTime(v, t + .01);
+        e.gain.exponentialRampToValueAtTime(.001, t + d);
+        o.connect(e);
+        e.connect(g);
+        o.start(t);
+        o.stop(t + d + .05);
+      }
+      // noise toca um "chiado" filtrado: serve para explosões, portas e batidas.
+      function noise(d, g, v, fc) {
+        const s = AC.createBufferSource(),
+          f = AC.createBiquadFilter(),
+          e = AC.createGain(),
+          t = AC.currentTime;
+        s.buffer = nb;
+        f.type = 'bandpass';
+        f.frequency.value = fc;
+        e.gain.setValueAtTime(v, t);
+        e.gain.exponentialRampToValueAtTime(.001, t + d);
+        s.connect(f);
+        f.connect(e);
+        e.connect(g);
+        s.start(t);
+        s.stop(t + d);
+      }
+      // 🔊 sfx escolhe o efeito sonoro pelo nome (tecla, erro, explosão, moeda, pulo...).
+      function sfx(k, a = 0) {
+        if (!sfxOn || !AC) return;
+        if (k === 'key') tone(440 + a * 55, .07, 'square', sG, .3);
+        else if (k === 'wrong') tone(130, .12, 'sawtooth', sG, .35);
+        else if (k === 'boom') {
+          noise(.45, sG, .9, 1500);
+          [523, 659, 784, 1047].forEach((f, i) => tone(f, .16, 'triangle', sG, .45, i * .05));
+        } else if (k === 'coin') tone(1200, .09, 'square', sG, .22);
+        else if (k === 'jump') tone(260, .18, 'sine', sG, .35, 0, 620);
+        else if (k === 'hit') {
+          noise(.3, sG, .8, 400);
+          tone(90, .3, 'sawtooth', sG, .5, 0, 40);
+        } else if (k === 'door') {
+          tone(110, 1.2, 'sawtooth', sG, .4, 0, 900);
+          noise(.9, sG, .5, 3000);
+        } else if (k === 'surp')[392, 523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, .25, 'square', sG, .3, i * .07));
+      }
+      // 🎵 Música: BASS = notas graves; ARP = acordes do arpejo. A cada 190 ms, mstep toca um "passo" (bumbo, baixo, arpejo e chimbal).
+      const BASS = [55, 43.65, 65.4, 49],
+        ARP = [
+          [220, 261.6, 329.6],
+          [174.6, 220, 261.6],
+          [261.6, 329.6, 392],
+        [196, 246.9, 293.7]
+        ];
+      function mstep() {
+        const c = (stp >> 4) % 4;
+        if (stp % 4 === 0) tone(150, .18, 'sine', mG, 1, 0, 40);
+        tone(BASS[c] * (stp % 8 < 4 ? 1 : 2), .17, 'sawtooth', mG, .35);
+        if (stp % 2) tone(ARP[c][(stp >> 1) % 3] * 2, .12, 'square', mG, .16);
+        else noise(.04, mG, .14, 7000);
+        stp++;
+      }
+      // setMusic liga/desliga a música com setInterval, que repete mstep a cada 190 milissegundos.
+      function setMusic(on) {
+        musicOn = on;
+        clearInterval(mt);
+        if (on) {
+          ac();
+          mt = setInterval(mstep, 190);
+        }
+        $('bm').classList.toggle('off', !on);
+      }
+      // 🔘 Botões de música, efeitos e voz: alternam ligado/desligado.
+      $('bm').onclick = function() {
+        setMusic(!musicOn);
+        this.blur();
+      };
+      $('bs').onclick = function() {
+        sfxOn = !sfxOn;
+        this.classList.toggle('off', !sfxOn);
+        this.blur();
+      };
+      $('bv').onclick = function() {
+        voiceOn = !voiceOn;
+        this.classList.toggle('off', !voiceOn);
+        this.blur();
+        if (voiceOn) speak('Voz ligada.');
+      };
+      if (!window.speechSynthesis) $('bv').style.display = 'none';
+
+      /* =====================================================================
+         PARTE 10 — TECLADO
+         Setas ou teclas 1 / 0 / espaço = mover. Letras = digitar a palavra ativa
+         (curT): se a letra é a próxima da palavra, avança; se não, a palavra treme
+         (sem castigo). Perto das teclas de digitação: 1 = esquerda, 0 = direita,
+         espaço = pular.
+         ===================================================================== */
+      // 🎮 Ações do jogador: cada uma é uma função pequena, assim setas, espaço e teclas 1/0 reaproveitam o mesmo código.
+      // 🛠️ MUDE AQUI: P.vy = 15 é a força do pulo; 0.7 é quantos segundos dura o deslize.
+      function goLeft() {
+        P.lane = Math.max(0, P.lane - 1);
+      }
+      function goRight() {
+        P.lane = Math.min(2, P.lane + 1);
+      }
+      function jump() {
+        if (P.y === 0) {
+          P.vy = 15;
+          sfx('jump');
+        }
+      }
+      function slide() {
+        P.slide = .7;
+        if (P.y > 0) P.vy = -26;
+      }
+      // ⌨️ Um único "ouvinte" de teclado cuida de tudo: se a tecla é de movimento, age; se é uma letra, tenta avançar a palavra ativa.
+      addEventListener('keydown', e => {
+        const k = e.key;
+        if (k.startsWith('Arrow') || k === ' ' || k === '1' || k === '0') {
+          e.preventDefault();
+          if (!started) return;
+          if (k === 'ArrowLeft' || k === '1') goLeft();
+          else if (k === 'ArrowRight' || k === '0') goRight();
+          else if (k === 'ArrowUp' || k === ' ') {
+            if (!e.repeat) jump();
+          } else if (k === 'ArrowDown') slide();
+          return;
+        }
+        if (!started || e.ctrlKey || e.metaKey || e.altKey) return;
+        const ch = norm(e.key);
+        if (ch.length !== 1 || ch < 'a' || ch > 'z') return;
+        const t = curT;
+        if (!t) return;
+        if (ch === t.w.n[t.pos]) {
+          t.pos++;
+          ks.push(performance.now());
+          sfx('key', t.pos);
+          if (t.cv) drawSign(t);
+          hudKey = '';
+          if (t.pos >= t.w.n.length) complete(t);
+        } else {
+          const w = $('word');
+          w.classList.remove('bad');
+          void w.offsetWidth;
+          w.classList.add('bad');
+          sfx('wrong');
+        }
+      });
+      // Quando a janela muda de tamanho, ajustamos a câmera e o canvas.
+      addEventListener('resize', () => {
+        cam.aspect = innerWidth / innerHeight;
+        cam.updateProjectionMatrix();
+        ren.setSize(innerWidth, innerHeight);
+      });
+      // ▶️ Botão CORRER: liga o áudio, esconde a tela inicial e começa o jogo.
+      $('go').onclick = () => {
+        ac();
+        $('start').style.display = 'none';
+        started = true;
+        applyTheme(0, true);
+        toast('Digite a palavra que aparece no topo para destruir a barreira!', 5000);
+      };
+
+      /* =====================================================================
+         PARTE 11 — O LAÇO PRINCIPAL
+         update(dt) roda a cada quadro. dt = segundos desde o quadro anterior;
+         multiplicar por dt faz o jogo andar igual em computadores rápidos e lentos.
+         ===================================================================== */
+      // setTxt só mexe na página se o texto mudou (economiza trabalho do navegador).
+      function setTxt(id, v) {
+        if (lastHud[id] !== v) {
+          lastHud[id] = v;
+          $(id).textContent = v;
+        }
+      }
+      // 🔁 update: o "coração" do jogo. Leia de cima para baixo: gerar mundo → velocidade → movimento → entidades → efeitos → câmera → painel.
+      function update(dt) {
+        const now = performance.now();
+        T += dt;
+        // 🏗️ Gera cenário e desafios à frente do jogador (135 metros), e só até o limite lim (o portal fechado bloqueia o caminho).
+        while (sz > P.z - 135 && sz > lim) {
+          spawnRow(sz);
+          sz -= 11;
+        }
+        while (tz > P.z - 135 && tz > lim) {
+          spawnT(tz);
+          tz -= 48 + speed * 1.6 + R() * 12;
+        }
+        // 🚀 Velocidade desejada = base do nível + bônus pela digitação (wpm), multiplicada por turbo, tropeço, câmera lenta e portal.
+        // 🛠️ MUDE AQUI: 15 é a velocidade inicial; 0.2 é quanto cada palavra por minuto acelera.
+        const base = 15 + level * 1.6;
+        let df = 1;
+        if (door && door.open < .6) df = clamp((P.z - (door.z + 3)) / 30, .12, 1);
+        const tg = (base + clamp(wpm * .2, 0, 15)) * (turbo > 0 ? 1.5 : 1) * (stum > 0 ? .35 : 1) * (slow > 0 ? .55 : 1) * df;
+        // lerp faz a velocidade real "deslizar" até a desejada, sem trancos.
+        speed = lerp(speed, tg, clamp(dt * 2.5, 0, 1));
+        turbo -= dt;
+        slow -= dt;
+        stum -= dt;
+        // 🏃 Movimento: distância = velocidade × tempo. Diante de um portal fechado, o corredor para.
+        P.z -= speed * dt;
+        if (door && door.open < .6) P.z = Math.max(P.z, door.z + 3);
+        score += speed * dt * .4;
+        // ↔️ Troca de faixa suave: x desliza até a faixa escolhida.
+        P.x = lerp(P.x, LN[P.lane], clamp(dt * 14, 0, 1));
+        // 🦘 Pulo: a gravidade puxa a velocidade vertical (vy) para baixo a cada quadro.
+        if (P.y > 0 || P.vy > 0) {
+          P.vy -= 40 * dt;
+          P.y += P.vy * dt;
+          if (P.y <= 0) {
+            P.y = 0;
+            P.vy = 0;
+          }
+        }
+        P.slide = Math.max(0, P.slide - dt);
+        // 🦵 Animação de corrida: o seno (Math.sin) cria o vai-e-vem de pernas e braços.
+        P.ph += speed * dt * .55;
+        const sw = Math.sin(P.ph) * .95,
+          air = P.y > 0;
+        lLg.rotation.x = air ? -.6 : sw;
+        lRg.rotation.x = air ? .5 : -sw;
+        aLg.rotation.x = air ? -2.6 : -sw;
+        aRg.rotation.x = air ? -2.6 : sw;
+        // Aplica posição, inclinação (deslizar e trocar de faixa) e brilho do jetpack ao modelo 3D.
+        rn.position.set(P.x, P.y + (P.slide > 0 ? .35 : 0), P.z);
+        rn.rotation.x = lerp(rn.rotation.x, P.slide > 0 ? 1.25 : 0, clamp(dt * 16, 0, 1));
+        rn.rotation.z = (LN[P.lane] - P.x) * .12;
+        flame.scale.setScalar(1.3 + Math.sin(T * 40) * .3 + (turbo > 0 ? 1.2 : 0));
+        blob.position.y = .04 - P.y;
+        blob.scale.setScalar(.8 * clamp(1 - P.y * .12, .4, 1));
+        rl.position.set(P.x, 3, P.z + 1);
+        rl.color.lerp(tAcc, .05);
+        // 🛣️ Pista e chão acompanham o jogador; mexer no offset da textura simula o chão passando.
+        road.position.z = ground.position.z = P.z;
+        roadT.offset.y = -(P.z / 10);
+        gridT.offset.y = -(P.z / 8);
+        stars.position.copy(cam.position);
+        dl.position.set(P.x - 10, 20, P.z + 10);
+        dl.target.position.set(P.x, 0, P.z);
+        // 🎨 Transição suave: céu, neblina, chão e luzes deslizam para as cores do mundo atual.
+        const k = clamp(dt * 2.5, 0, 1);
+        scene.background.lerp(tSky, k);
+        scene.fog.color.lerp(tFog, k);
+        ground.material.color.lerp(tGr, k);
+        road.material.color.lerp(tAcc, k);
+        hemi.color.lerp(tAcc, k * .5);
+        am.color.lerp(tAcc, k);
+        stars.material.opacity = lerp(stars.material.opacity, tStar, k);
+        // 🎯 Palavra ativa = o alvo ainda não destruído mais próximo (até 110 metros à frente).
+        curT = null;
+        let bd = 1e9;
+        for (const e of ents) {
+          if (!e.w || e.done) continue;
+          const d = P.z - e.z;
+          if (d > -1 && d < 110 && d < bd) {
+            bd = d;
+            curT = e;
+          }
+        }
+        // 🔍 Percorre os objetos: coleta moedas, bate em blocos, falha em alvos, gira baús, abre portais.
+        // Vamos de trás para frente porque removemos itens da lista durante o laço.
+        for (let i = ents.length - 1; i >= 0; i--) {
+          const e = ents[i];
+          if (!e) continue;
+          if (e.k === 'moeda') {
+            e.g.rotation.y += dt * 4;
+            if (Math.abs(e.z - P.z) < 1.4 && Math.abs(e.x - P.x) < 1.5 && P.y < 3) {
+              coins++;
+              score += 10;
+              sfx('coin');
+              kill(e);
+              continue;
+            }
+          } else if (e.k === 'bloco') {
+            if (Math.abs(e.z - P.z) < 1.3 && Math.abs(e.x - P.x) < 1.6 && P.y < e.h - .1) {
+              stum = 1;
+              shake = .6;
+              combo = 0;
+              burst(new THREE.Vector3(e.x, 1, e.z), 0xff3b3b, 30, 9);
+              sfx('hit');
+              kill(e);
+              continue;
+            }
+          } else if (e.k === 'alvo') {
+            if (!e.done && P.z < e.z + 1) {
+              hitAlvo(e);
+              continue;
+            }
+          } else if (e.k === 'bau') {
+            e.star.rotation.y += dt * 3;
+            if (!e.done && P.z < e.z - 1) {
+              toast('Perdeu a surpresa! A palavra era <b>' + e.w.raw.toUpperCase() + '</b>');
+              kill(e);
+              hudKey = '';
+              continue;
+            }
+          } else if (e.k === 'porta' && e.opening) {
+            e.open = Math.min(1, e.open + dt * 1.1);
+            e.pl.position.x = -2.7 - e.open * 5.6;
+            e.pr.position.x = 2.7 + e.open * 5.6;
+            e.gl.material.opacity = e.open * .9;
+          }
+          if (e.z > P.z + 25) kill(e);
+        }
+        // 🚪 Portal aberto e atravessado: novo mundo!
+        if (door && door.open >= 1 && P.z < door.z - 2) {
+          crossTheme();
+          door = null;
+        }
+        // 🧹 Remove cenário que ficou para trás (o jogo não pode guardar o mundo inteiro na memória).
+        for (let i = scn.length - 1; i >= 0; i--) {
+          const o = scn[i];
+          if (o.userData.sp) o.userData.sp.rotation.y += dt * .5;
+          if (o.position.z > P.z + 25) {
+            scene.remove(o);
+            scn.splice(i, 1);
+          }
+        }
+        // ✨ Partículas: cada uma tem vida (l) e velocidade (v); a gravidade as puxa e elas encolhem até sumir.
+        for (let i = parts.length - 1; i >= 0; i--) {
+          const p = parts[i];
+          p.l -= dt;
+          p.v.y -= 14 * dt;
+          p.m.position.addScaledVector(p.v, dt);
+          p.m.scale.setScalar(.35 * clamp(p.l * 1.5, 0, 1));
+          if (p.l <= 0 || p.m.position.y < 0) {
+            scene.remove(p.m);
+            parts.splice(i, 1);
+          }
+        }
+        for (let i = fx.length - 1; i >= 0; i--) {
+          const f = fx[i];
+          f.g.position.addScaledVector(f.v, dt);
+          if (f.g.position.y < 0) {
+            burst(f.g.position.clone().setY(.5), 0xff8a2b, 25, 10);
+            sfx('boom');
+            scene.remove(f.g);
+            fx.splice(i, 1);
+          }
+        }
+        // 💨 Linhas de velocidade e partículas do ambiente: recicladas quando ficam para trás (voltam lá na frente).
+        const len = speed * .09;
+        for (let i = 0; i < NL; i++) {
+          if (LZ[i] > P.z + 10) {
+            LZ[i] = P.z - 100 - R() * 30;
+            LX[i] = P.x + (R() - .5) * 34;
+            LY[i] = .3 + R() * 10;
+          }
+          const q = i * 6;
+          lp[q] = lp[q + 3] = LX[i];
+          lp[q + 1] = lp[q + 4] = LY[i];
+          lp[q + 2] = LZ[i];
+          lp[q + 5] = LZ[i] + len;
+        }
+        lg.attributes.position.needsUpdate = true;
+        lm.opacity = clamp((speed - 14) / 30, 0, .55);
+        const vy = TH[cur % 4].vy;
+        for (let i = 0; i < NA; i++) {
+          const q = i * 3;
+          ap[q + 1] += vy * dt;
+          ap[q] += Math.sin(T + i) * dt * .5;
+          if (ap[q + 1] < 0) ap[q + 1] += 16;
+          if (ap[q + 1] > 16) ap[q + 1] -= 16;
+          if (ap[q + 2] > P.z + 8) {
+            ap[q + 2] = P.z - 72;
+            ap[q] = P.x + (R() - .5) * 40;
+          }
+        }
+        ag.attributes.position.needsUpdate = true;
+        // ⌨️ Velocidade de digitação: conta as letras certas dos últimos 5 segundos (5 letras = 1 palavra) e converte para palavras por minuto.
+        // Bateu o recorde? Salva no navegador e comemora!
+        while (ks.length && now - ks[0] > 5000) ks.shift();
+        const span = Math.max(3000, ks.length ? now - ks[0] : 3000);
+        wpm += (ks.length / 5 / (span / 60000) - wpm) * clamp(dt * 4, 0, 1);
+        if (ks.length >= 12 && wpm > rec + 1) {
+          const old = rec;
+          rec = Math.round(wpm);
+          try {
+            localStorage.setItem('pv_rec', rec);
+          } catch (e) {} if (old > 0 && now - lastCel > 8000) {
+            lastCel = now;
+            turbo = Math.max(turbo, 3);
+            ban('🏆 NOVO RECORDE<br><span style="font-size:.5em">' + rec + ' palavras por minuto</span>', 2600);
+            sfx('surp');
+          }
+        }
+        // 🎥 Câmera: o campo de visão (fov) abre com a velocidade; ela segue atrás do corredor e treme (shake) nos impactos.
+        const fov = 62 + clamp((speed - 14) / 26, 0, 1) * 22 + (turbo > 0 ? 10 : 0);
+        cam.fov = lerp(cam.fov, fov, .08);
+        cam.updateProjectionMatrix();
+        const cx = P.x * .55;
+        cam.position.set(cx + (R() - .5) * shake, 4.4 + (R() - .5) * shake + Math.sin(P.ph * 2) * .04, P.z + 9);
+        cam.lookAt(P.x * .4, 2.4, P.z - 14);
+        cam.rotateZ((LN[P.lane] - P.x) * .015);
+        shake *= Math.pow(.02, dt);
+        // 📊 Atualiza o painel (HUD): pontos, moedas, velocidade, recorde, combo e a palavra ativa.
+        setTxt('score', Math.floor(score).toLocaleString('pt-BR'));
+        setTxt('meta', '🪙 ' + coins + '   📖 ' + learn.size + ' palavras');
+        setTxt('spdn', Math.round(wpm));
+        setTxt('rec', '🏆 recorde ' + rec);
+        setTxt('cmb', combo > 1 ? '🔥 combo x' + combo : '');
+        $('gf').style.width = clamp(wpm / Math.max(rec, 30) * 100, 0, 100) + '%';
+        const hk = curT ? curT.w.raw + curT.pos : '';
+        if (hk !== hudKey) {
+          hudKey = hk;
+          const t = curT;
+          if (!t) {
+            $('word').innerHTML = '';
+            $('cat').textContent = '';
+          } else {
+            const r = t.w.raw.toUpperCase();
+            $('word').innerHTML = '<i>' + r.slice(0, t.pos) + '</i>' + r.slice(t.pos);
+            $('cat').textContent = TYPE[t.w.t] + (t.k === 'porta' ? ' · portal' : t.k === 'bau' ? ' · surpresa' : '');
+          }
+        }
+      }
+      // ▶️ Início: posiciona a câmera, aplica o mundo 1 e liga o laço.
+      // requestAnimationFrame chama a função loop a cada quadro (~60 vezes por segundo).
+      cam.position.set(0, 4.4, 9);
+      applyTheme(0, true);
+      let lastT = performance.now();
+      (function loop(t) {
+        requestAnimationFrame(loop);
+        const dt = Math.min((t - lastT) / 1000 || 0, .05);
+        lastT = t;
+        if (started) update(dt);
+        ren.render(scene, cam);
+      })(performance.now());
+    </script>
+  </body>
 </html>
