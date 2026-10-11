@@ -1,4 +1,4 @@
-# 🤖 Mundo das Palavras
+# 🤖 Corrida Palavras
 
 ## ▶️ [**JOGAR AGORA → duckblox.github.io/corrida-palavras**](https://duckblox.github.io/corrida-palavras/)
 
