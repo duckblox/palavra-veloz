@@ -1163,6 +1163,8 @@
 
       let started = false,
         voiceOn = false,
+        talking = false,
+        spk = 0,
         menuOpen = false,
         boss = null,
         ghostRef = null,
@@ -1210,7 +1212,7 @@
         rec = +localStorage.getItem('pv_rec') || 0;
       } catch (e) {}
       // 💾 SV = tudo o que o jogo guarda no navegador (localStorage), num só objeto: moedas, itens comprados (own) e usados (eq),
-      // palavras (w: acertos, tropeços e letras erradas), recorde por dia (day), tempo jogado, melhor corrida (ghost) e modo calmo.
+      // palavras (w: acertos, tropeços e letras erradas), recorde por dia (day), tempo jogado, melhor corrida (ghost), modo calmo e volumes (vol).
       // JSON.stringify transforma o objeto em texto para guardar; JSON.parse faz o caminho de volta.
       let SV = {
         coins: 0,
@@ -1220,7 +1222,9 @@
         day: {},
         time: 0,
         ghost: null,
-        calm: false
+        calm: false,
+        vol: { m: 50, s: 50, v: 45 },
+        volv: 2
       };
       try {
         const j = JSON.parse(localStorage.getItem('pv_save'));
@@ -1228,6 +1232,10 @@
       } catch (e) {}
       coins = SV.coins;
       calm = SV.calm;
+      if (SV.volv !== 2) {
+        SV.vol = { m: 50, s: 50, v: 45 };
+        SV.volv = 2;
+      }
       const trace = [];
       let wiped = false;
       // 📅 dayRec devolve o registro de HOJE (e cria se não existir). wrec devolve [acertos, tropeços, letras erradas] de uma palavra.
@@ -1373,20 +1381,33 @@
       }
       // 🗣️ ptVoice escolhe a melhor voz em português instalada (nota maior para pt-BR e para vozes "natural", "neural" ou "google").
       // Se não houver nenhuma, a voz não liga: assim o jogo não lê português com voz de outro idioma, que soa muito estranho.
+      // u.volume (0 a 1) vem do controle de volume da voz (elevado ao quadrado); onstart/onend avisam quando ela começa e termina de falar, para abaixar e subir a música.
       // speak lê o texto em voz alta com a síntese de fala do navegador (speechSynthesis), um pouco mais devagar (rate = 0.95).
       function ptVoice() {
         const nota = x => (/natural|google|neural/i.test(x.name) ? 1 : 0) + (x.lang.toLowerCase().replace('_', '-') === 'pt-br' ? 2 : 0);
         return speechSynthesis.getVoices().filter(x => x.lang && x.lang.toLowerCase().replace('_', '-').startsWith('pt')).sort((a, b) => nota(b) - nota(a))[0] || null;
       }
-      function speak(txt) {
-        if (!voiceOn || !window.speechSynthesis) return;
+      function speak(txt, force) {
+        if ((!voiceOn && !force) || !window.speechSynthesis) return;
         const v = ptVoice();
         if (!v) return;
         speechSynthesis.cancel();
-        const u = new SpeechSynthesisUtterance(txt);
+        const u = new SpeechSynthesisUtterance(txt),
+          id = ++spk;
         u.voice = v;
         u.lang = v.lang;
         u.rate = .95;
+        u.volume = Math.pow(SV.vol.v / 100, 2);
+        u.onstart = () => {
+          talking = true;
+          applyVol();
+        };
+        u.onend = u.onerror = () => {
+          if (id === spk) {
+            talking = false;
+            applyVol();
+          }
+        };
         speechSynthesis.speak(u);
       }
 
@@ -1777,17 +1798,31 @@
       function ac() {
         if (!AC) {
           AC = new(window.AudioContext || window.webkitAudioContext)();
+          const mix = AC.createDynamicsCompressor();
+          mix.threshold.value = -8;
+          mix.knee.value = 12;
+          mix.ratio.value = 6;
+          mix.connect(AC.destination);
           mG = AC.createGain();
           mG.gain.value = .13;
-          mG.connect(AC.destination);
+          mG.connect(mix);
           sG = AC.createGain();
           sG.gain.value = .25;
-          sG.connect(AC.destination);
+          sG.connect(mix);
           nb = AC.createBuffer(1, AC.sampleRate * .6, AC.sampleRate);
           const d = nb.getChannelData(0);
           for (let i = 0; i < d.length; i++) d[i] = R() * 2 - 1;
+          applyVol();
         }
         if (AC.state === 'suspended') AC.resume();
+      }
+      // 🔊 applyVol aplica os volumes (0 a 100) escolhidos em Opções. Música (mG) e efeitos (sG) são "ganhos" do Web Audio (100 = 1,6 vezes o som original).
+      // Um compressor (mix) evita que o som estoure quando está alto. Enquanto a voz fala (talking), a música abaixa para 30% ("ducking").
+      // A voz usa o QUADRADO do valor (Math.pow, na função speak): assim o controle tem mais precisão nos volumes baixos.
+      function applyVol() {
+        if (!AC) return;
+        mG.gain.setTargetAtTime(SV.vol.m / 100 * 1.6 * (talking ? .3 : 1), AC.currentTime, .1);
+        sG.gain.setTargetAtTime(SV.vol.s / 100 * 1.6, AC.currentTime, .05);
       }
       // tone toca uma nota: frequência f, duração d, tipo de onda, volume v. f2 faz a nota deslizar de f até f2.
       function tone(f, d, ty, g, v, t0 = 0, f2) {
@@ -2062,7 +2097,19 @@
       }
       // ⚙️ Opções: modo calmo (sem clarões e tremor de câmera, mais lento, letras maiores) e apagar o progresso.
       function optHTML() {
-        return '<h3>⚙️ Opções</h3><p><button class="it' + (calm ? ' on' : '') + '" onclick="toggleCalm()">🌿 Modo calmo: ' + (calm ? 'LIGADO' : 'desligado') + '</button><br><small>Sem clarões nem tremor de câmera, velocidade menor e letras maiores.</small></p><p><small>Esc abre e fecha este menu. ENTER lança uma bomba.</small></p><p><button class="it" onclick="resetAll()">🗑️ Apagar todo o progresso</button></p>';
+        const sl = (k, ic, n, on) => '<p>' + ic + ' <b>' + n + '</b>' + (on ? '' : ' <small>(desligado no botão do topo)</small>') + '<br><input type="range" min="0" max="100" value="' + SV.vol[k] + '" oninput="setVol(\'' + k + '\',this.value)" onchange="testVol(\'' + k + '\')" style="width:100%"> <small id="v' + k + '">' + SV.vol[k] + '%</small></p>';
+        return '<h3>🔊 Volumes</h3>' + sl('m', '🎵', 'Música', musicOn) + sl('s', '🔊', 'Efeitos', sfxOn) + sl('v', '🗣️', 'Voz', voiceOn) + '<p><small>Enquanto a voz fala, a música abaixa sozinha para você ouvir melhor.</small></p>' + '<h3>⚙️ Opções</h3><p><button class="it' + (calm ? ' on' : '') + '" onclick="toggleCalm()">🌿 Modo calmo: ' + (calm ? 'LIGADO' : 'desligado') + '</button><br><small>Sem clarões nem tremor de câmera, velocidade menor e letras maiores.</small></p><p><small>Esc abre e fecha este menu. ENTER lança uma bomba.</small></p><p><button class="it" onclick="resetAll()">🗑️ Apagar todo o progresso</button></p>';
+      }
+      // 🎚️ setVol atualiza o volume enquanto você arrasta o controle (oninput); testVol toca uma amostra e guarda ao soltar (onchange).
+      function setVol(k, v) {
+        SV.vol[k] = +v;
+        $('v' + k).textContent = v + '%';
+        applyVol();
+      }
+      function testVol(k) {
+        saveAll();
+        if (k === 'v') speak('Este é o volume da voz.', true);
+        else if (k === 's') sfx('boom');
       }
       function applyCalm() {
         document.body.classList.toggle('calm', calm);
@@ -2093,7 +2140,10 @@
         toggleMenu();
         this.blur();
       };
-      $('bg').onclick = () => openMenu('g');
+      $('bg').onclick = () => {
+        ac();
+        openMenu('g');
+      };
       document.addEventListener('visibilitychange', () => {
         if (document.hidden) {
           saveAll();
