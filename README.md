@@ -47,6 +47,7 @@ Tudo isso fica no menu (**Esc** ou **⏸**; também há um botão na tela inicia
 - **Fantasma:** o jogo grava a sua melhor corrida e, nas próximas, um corredor transparente repete esse ritmo. O painel mostra quantos metros você está na frente ou atrás dele.
 - **Álbum:** todas as palavras, com cadeado até você digitá-las; as descobertas mostram tipo e significado.
 - **Painel:** recorde, palavras certas, tempo jogado, gráfico dos últimos 7 dias e as palavras que mais precisam de treino.
+- **Volumes (⚙️ Opções):** controles separados para a música, os efeitos e a voz. Enquanto a voz fala, a música abaixa sozinha para dar para ouvi-la bem. Os botões 🎵 🔊 🗣️ do topo continuam ligando e desligando cada som. Os volumes padrão já deixam a voz mais baixa que a música e os efeitos, e a escala da voz é mais precisa nos volumes baixos.
 - **Modo calmo (⚙️ Opções):** sem clarões nem tremor de câmera, velocidade menor, efeitos mais suaves e letras maiores.
 
 ## 💡 O que se aprende jogando
@@ -83,13 +84,12 @@ Procure os comentários **MUDE AQUI** no código, troque um valor, salve e recar
 7. Em `SHOP`, mude os preços ou invente um item novo (por exemplo, uma cor nova de traje).
 8. Em `spawnT`, a vida do chefe é `Math.min(4 + level, 8)`. Quer um chefe mais fácil ou mais difícil?
 
-
 ## ⚠️ Avisos
 **Para quem joga:** o jogo é rápido e colorido. Faça pausas, beba água e brinque também fora da tela.
 
 **Para responsáveis:**
 - Não há cadastro, compras, anúncios nem jogos de azar.
-- O jogo **não coleta dados**. O que fica guardado (moedas, visuais, palavras descobertas, recordes por dia, tempo jogado e a melhor corrida) fica **apenas no navegador do próprio aparelho** (`localStorage`). Se os dados do navegador forem apagados, ou se o jogo for aberto em aba anônima, o progresso se perde. Em **⚙️ Opções**, é possível apagar tudo e recomeçar.
+- O jogo **não coleta dados**. O que fica guardado (moedas, visuais, palavras descobertas, recordes por dia, tempo jogado, volumes e a melhor corrida) fica **apenas no navegador do próprio aparelho** (`localStorage`). Se os dados do navegador forem apagados, ou se o jogo for aberto em aba anônima, o progresso se perde. Em **⚙️ Opções**, é possível apagar tudo e recomeçar.
 - Ao abrir, o navegador baixa a biblioteca Three.js do serviço `cdnjs.cloudflare.com`. É um pedido normal de um arquivo de código, sem envio de dados do jogador.
 - **Estímulos visuais e sonoros:** há um clarão branco rápido (cerca de 1 segundo) ao trocar de mundo, linhas de velocidade e efeitos de explosão. Pessoas sensíveis à luz, ou que se sobrecarregam com facilidade, devem jogar com atenção e parar se sentirem desconforto. O **modo calmo** (⚙️ Opções) remove os clarões e o tremor de câmera, reduz a velocidade e aumenta as letras. O jogo também pausa sozinho ao trocar de aba. A **música e a voz começam desligadas**, e os efeitos sonoros podem ser desligados no botão 🔊.
 - **Voz (opcional):** o botão 🗣️ usa a síntese de fala do navegador ou do sistema para ler o significado das palavras. Em alguns navegadores, certas vozes funcionam pela internet; se isso for um problema, deixe o botão desligado (é o padrão). O jogo escolhe a melhor voz em português instalada (de preferência pt-BR). Se não houver nenhuma, ele avisa e mantém a voz desligada. Para instalar uma, procure nas configurações do sistema (o caminho exato varia com a versão): no Windows, Hora e idioma → Fala (adicionar vozes em Português do Brasil; o Edge costuma ter as melhores); no Mac, Acessibilidade → Conteúdo Falado; no Android, os Serviços de fala do Google.
