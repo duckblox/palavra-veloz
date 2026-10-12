@@ -122,6 +122,7 @@
 
       /* 💬 Mensagem do rodapé: aparece e some mudando a opacity (transition suaviza). */
       #toast {
+        z-index: 8;
         left: 50%;
         bottom: 70px;
         transform: translateX(-50%);
@@ -278,6 +279,139 @@
         border: 0;
         box-shadow: 0 0 30px #19e3ff;
       }
+
+      #ghost {
+        font-size: 12px;
+        opacity: .85;
+        margin-top: 4px;
+        display: none;
+      }
+
+      /* 📋 Menu (pausa, garagem, álbum, painel, opções): cobre a tela toda quando aberto. display: flex centraliza a caixa. */
+      #menu {
+        position: fixed;
+        inset: 0;
+        z-index: 6;
+        background: #05030fe6;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 14px;
+      }
+
+      #mbox {
+        width: min(760px,100%);
+        max-height: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        background: #0b0820;
+        border: 1px solid #19e3ff;
+        border-radius: 14px;
+        padding: 14px;
+      }
+
+      #mtabs {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+
+      #mc {
+        overflow: auto;
+        min-height: 200px;
+        max-height: 60vh;
+        font-size: 15px;
+        line-height: 1.5;
+      }
+
+      #mc h3 {
+        margin: 14px 0 6px;
+        color: #19e3ff;
+        letter-spacing: .06em;
+      }
+
+      .grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .it {
+        font-size: 15px;
+        min-width: 120px;
+        text-align: center;
+      }
+
+      .it.on {
+        background: #19e3ff;
+        color: #05030f;
+      }
+
+      .sw {
+        display: inline-block;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        margin-right: 6px;
+        vertical-align: middle;
+        border: 1px solid #fff8;
+      }
+
+      .al {
+        padding: 3px 0;
+        border-bottom: 1px solid #ffffff18;
+      }
+
+      .al.lk {
+        opacity: .4;
+      }
+
+      .al .w {
+        display: inline-block;
+        padding: 1px 8px;
+        border-radius: 8px;
+        color: #05030f;
+        font-weight: 700;
+      }
+
+      .bars {
+        display: flex;
+        gap: 8px;
+        align-items: flex-end;
+        height: 130px;
+      }
+
+      .bar {
+        flex: 1;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        align-items: center;
+      }
+
+      .bar span {
+        display: block;
+        width: 100%;
+        background: linear-gradient(#19e3ff,#5a4de8);
+        border-radius: 4px 4px 0 0;
+        min-height: 2px;
+      }
+
+      .bar small {
+        font-size: 10px;
+        opacity: .7;
+      }
+
+      /* 🌿 Modo calmo: letras maiores. A classe "calm" é ligada no <body> pelo JavaScript. */
+      .calm #word {
+        font-size: clamp(46px,9vw,88px);
+      }
+
+      .calm #cat, .calm #toast {
+        font-size: 22px;
+      }
     </style>
   </head>
   <body>
@@ -291,8 +425,9 @@
         Corra por mundos secretos. <b>Digite as palavras</b> que aparecem para destruir barreiras,
         abrir portais e descobrir surpresas. Quanto mais rápido você digita, mais rápido você corre.
       </p>
-      <p style="font-size: 14px; opacity: 0.7">← → (ou 1 e 0) trocam de pista · ↑ ou espaço pula · ↓ desliza · ENTER lança uma bomba nos blocos</p>
+      <p style="font-size: 14px; opacity: 0.7">← → (ou 1 e 0) trocam de pista · ↑ ou espaço pula · ↓ desliza · ENTER lança uma bomba · Esc pausa e abre o menu</p>
       <button id="go">CORRER</button>
+      <button id="bg">🎨 GARAGEM E ÁLBUM</button>
     </div>
 
     <!-- 📊 Canto superior esquerdo: mundo, pontos, moedas e palavras aprendidas -->
@@ -315,18 +450,34 @@
       <div id="gauge"><i id="gf"></i></div>
       <div id="rec" style="font-size: 13px">🏆 0</div>
       <div id="cmb"></div>
+      <div id="ghost"></div>
     </div>
 
     <!-- 💬 Mensagens: toast = rodapé (significado da palavra); banner = faixa grande no meio -->
     <div class="hud" id="toast"></div>
     <div class="hud" id="banner"></div>
-    <div class="hud" id="ctl">← → ou 1 / 0 pista · ↑ ou espaço pular · ↓ deslizar · ENTER bomba · digite a palavra</div>
+    <div class="hud" id="ctl">← → ou 1 / 0 pista · ↑ ou espaço pular · ↓ deslizar · ENTER bomba · Esc pausa · digite a palavra</div>
 
     <!-- ⚡ Clarão da troca de mundo -->
     <div id="flash"></div>
 
+    <!-- 📋 Menu (pausa): abas Garagem, Álbum, Painel e Opções. O JavaScript escreve o conteúdo em #mc. -->
+    <div id="menu">
+      <div id="mbox">
+        <div id="mtabs">
+          <button id="tg">🎨 Garagem</button>
+          <button id="ta">📖 Álbum</button>
+          <button id="tp">📊 Painel</button>
+          <button id="to">⚙️ Opções</button>
+        </div>
+        <div id="mc"></div>
+        <button id="mclose">▶ CONTINUAR</button>
+      </div>
+    </div>
+
     <!-- 🔘 Botões de som e voz (música e voz começam desligadas: class="off" deixa o botão apagado) -->
     <div id="btns">
+      <button id="bp" title="Pausa e menu (Esc)">⏸</button>
       <button id="bm" class="off" title="Música">🎵</button>
       <button id="bs" title="Efeitos sonoros">🔊</button>
       <button id="bv" class="off" title="Voz lendo o significado das palavras">🗣️</button>
@@ -367,7 +518,8 @@
          • Gráficos 3D (Three.js) ...................... PARTES 2, 3, 4 e 5
          • Desenhar com código (canvas 2D) ............. cvs(), drawSign()
          • Sons com código (Web Audio) ................. PARTE 9
-         • Animação por quadros (requestAnimationFrame)  fim do arquivo */
+         • Animação por quadros (requestAnimationFrame)  fim do arquivo
+         • HTML montado por código (innerHTML) e dados em JSON ... PARTE 11 */
 
       /* =====================================================================
          PARTE 1 — FERRAMENTAS E VOCABULÁRIO
@@ -808,8 +960,14 @@
       const body = new THREE.Group();
       rn.add(body);
       body.rotation.y = Math.PI;
-      const SUIT = std(0x161826, 0x0a0c18, 1),
-        ACC = neon(0x19e3ff);
+      const SUIT = new THREE.MeshStandardMaterial({
+        color: 0x161826,
+        roughness: .55,
+        metalness: .35,
+        emissive: 0x0a0c18,
+        flatShading: true
+      }),
+        ACC = new THREE.MeshBasicMaterial({ color: 0x19e3ff });
       bx(body, SUIT, 0, 2, 0, .9, 1.1, .5);
       bx(body, ACC, 0, 2.15, .26, .55, .1, .02);
       bx(body, ACC, 0, 1.85, .26, .55, .06, .02);
@@ -836,6 +994,24 @@
       // ⚫ Sombra falsa: um círculo escuro no chão (mais barato que calcular sombras de verdade).
       const blob = mk(rn, CIR, new THREE.MeshBasicMaterial({ color: 0, transparent: true, opacity: .5 }), 0, .04, 0, .8, .8, 1);
       blob.rotation.x = -Math.PI / 2;
+      // 🎩 hatG = ponto sobre a cabeça onde ficam os acessórios da garagem (antena, chifres, coroa, halo).
+      const hatG = new THREE.Group();
+      hatG.position.set(0, 3.3, 0);
+      body.add(hatG);
+      // 👻 O fantasma: um corredor simples e transparente que repete a sua melhor corrida (veja ghostAt e o bloco do fantasma no update).
+      const gh = new THREE.Group(),
+        GM = gl(0x9fefff, .3);
+      scene.add(gh);
+      gh.visible = false;
+      bx(gh, GM, 0, 2, 0, .9, 1.1, .5);
+      sp(gh, GM, 0, 2.95, 0, .38);
+      const gLg = [-.25, .25].map(x => {
+        const p = new THREE.Group();
+        p.position.set(x, 1.45, 0);
+        gh.add(p);
+        cy(p, GM, 0, -.55, 0, .17, 1.1);
+        return p;
+      });
 
       /* =====================================================================
          PARTE 5 — OS MUNDOS (temas)
@@ -987,6 +1163,11 @@
 
       let started = false,
         voiceOn = false,
+        menuOpen = false,
+        boss = null,
+        ghostRef = null,
+        trailT = 0,
+        calm = false,
         bombs = 3,
         holdUntil = 0,
         holdWord = '',
@@ -1027,7 +1208,137 @@
       // 💾 localStorage guarda o recorde no navegador. try/catch evita erro se o navegador bloquear o armazenamento.
       try {
         rec = +localStorage.getItem('pv_rec') || 0;
-      } catch (e) {} const mkW = w => ({ raw: w[0], n: norm(w[0]), t: w[1], m: w[2] });
+      } catch (e) {}
+      // 💾 SV = tudo o que o jogo guarda no navegador (localStorage), num só objeto: moedas, itens comprados (own) e usados (eq),
+      // palavras (w: acertos, tropeços e letras erradas), recorde por dia (day), tempo jogado, melhor corrida (ghost) e modo calmo.
+      // JSON.stringify transforma o objeto em texto para guardar; JSON.parse faz o caminho de volta.
+      let SV = {
+        coins: 0,
+        own: { suit: ['grafite'], glow: ['ciano'], hat: ['nada'], trail: ['nada'] },
+        eq: { suit: 'grafite', glow: 'ciano', hat: 'nada', trail: 'nada' },
+        w: {},
+        day: {},
+        time: 0,
+        ghost: null,
+        calm: false
+      };
+      try {
+        const j = JSON.parse(localStorage.getItem('pv_save'));
+        if (j) SV = Object.assign(SV, j);
+      } catch (e) {}
+      coins = SV.coins;
+      calm = SV.calm;
+      const trace = [];
+      let wiped = false;
+      // 📅 dayRec devolve o registro de HOJE (e cria se não existir). wrec devolve [acertos, tropeços, letras erradas] de uma palavra.
+      const dayRec = () => {
+        const d = new Date().toLocaleDateString('sv-SE');
+        return SV.day[d] || (SV.day[d] = { b: 0, w: 0 });
+      };
+      const wrec = w => SV.w[w] || (SV.w[w] = [0, 0, 0]);
+      // 👻 ghostAt(a, t) diz a que distância o fantasma estava no segundo t (interpola entre dois segundos; depois do fim, segue no ritmo médio).
+      function ghostAt(a, t) {
+        const n = a.length - 1;
+        if (t >= n) return a[n] + (t - n) * (a[n] / Math.max(n, 1));
+        const i = Math.floor(t);
+        return lerp(a[i], a[i + 1], t - i);
+      }
+      // 💾 saveAll guarda tudo. Só troca a melhor corrida se, no mesmo segundo, você estiver mais à frente do que o fantasma gravado. Roda a cada 10 s, ao abrir o menu e ao sair da página.
+      function saveAll() {
+        if (wiped) return;
+        const n = trace.length - 1;
+        if (n >= 30 && (!SV.ghost || trace[n] > ghostAt(SV.ghost, n))) SV.ghost = trace.slice();
+        SV.coins = coins;
+        SV.calm = calm;
+        try {
+          localStorage.setItem('pv_save', JSON.stringify(SV));
+        } catch (e) {}
+      }
+      setInterval(saveAll, 10000);
+      addEventListener('pagehide', saveAll);
+      const mkW = w => ({ raw: w[0], n: norm(w[0]), t: w[1], m: w[2] });
+
+      /* =====================================================================
+         PARTE 6B — A GARAGEM (visuais comprados com moedas)
+         SHOP é o catálogo: cada item é [id, nome, preço, cor] (cor -1 = arco-íris animado).
+         🛠️ MUDE AQUI: troque preços e cores, ou invente um item novo e use applyLook!
+         ===================================================================== */
+
+      const RB = [0xff3b3b, 0xff9f1c, 0xffe14d, 0x4cd964, 0x19e3ff, 0x5a4de8, 0xb14de8];
+      const SHOP = {
+        suit: {
+          n: 'Traje',
+          it: [
+            ['grafite', 'Grafite', 0, 0x161826],
+            ['azul', 'Azul', 30, 0x1f4fd8],
+            ['vermelho', 'Vermelho', 30, 0xc0242f],
+            ['verde', 'Verde', 40, 0x1f9d55],
+            ['dourado', 'Dourado', 80, 0xd4a017],
+          ['arcoiris', 'Arco-íris', 150, -1]
+          ]
+        },
+        glow: {
+          n: 'Neon',
+          it: [
+            ['ciano', 'Ciano', 0, 0x19e3ff],
+            ['magenta', 'Magenta', 20, 0xff2bd6],
+            ['amarelo', 'Amarelo', 20, 0xffd24a],
+            ['verde', 'Verde', 30, 0x3dff8a],
+            ['branco', 'Branco', 30, 0xffffff],
+          ['arcoiris', 'Arco-íris', 120, -1]
+          ]
+        },
+        hat: {
+          n: 'Acessório',
+          it: [
+            ['nada', 'Nenhum', 0, 0],
+            ['antena', 'Antena', 25, 0],
+            ['chifres', 'Chifres', 40, 0],
+            ['coroa', 'Coroa', 100, 0],
+          ['halo', 'Halo', 60, 0]
+          ]
+        },
+        trail: {
+          n: 'Trilha de luz',
+          it: [
+            ['nada', 'Nenhuma', 0, 0],
+            ['ciano', 'Ciano', 40, 0x19e3ff],
+            ['fogo', 'Fogo', 60, 0xff6a1a],
+            ['ouro', 'Ouro', 90, 0xffd24a],
+          ['arcoiris', 'Arco-íris', 160, -1]
+          ]
+        }
+      };
+      const item = (cat, id) => SHOP[cat].it.find(x => x[0] === id) || SHOP[cat].it[0];
+      // 🎩 buildHat monta o acessório escolhido (antena, chifres, coroa ou halo) com formas simples.
+      function buildHat(id) {
+        while (hatG.children.length) hatG.remove(hatG.children[0]);
+        const gold = std(0xd4a017, 0x7a5a00, .8);
+        if (id === 'antena') {
+          cy(hatG, SUIT, 0, .5, 0, .05, 1);
+          sp(hatG, neon(0xff3b3b), 0, 1.05, 0, .14);
+        } else if (id === 'chifres') {
+          [-1, 1].forEach(s => {
+            cn(hatG, gold, s * .3, .35, 0, .14, .6).rotation.z = -s * .5;
+          });
+        } else if (id === 'coroa') {
+          for (let i = 0; i < 5; i++) {
+            const a = i / 5 * 6.283;
+            cn(hatG, gold, Math.cos(a) * .3, .45, Math.sin(a) * .3, .09, .35);
+          }
+        } else if (id === 'halo') {
+          mk(hatG, TOR, neon(0xffe14d), 0, .55, 0, .4, .4, .9).rotation.x = Math.PI / 2;
+        }
+      }
+      // 🎨 applyLook aplica os itens escolhidos ao modelo 3D. O arco-íris é animado no update (a cor muda com o tempo).
+      function applyLook() {
+        const e = SV.eq,
+          sc = item('suit', e.suit)[3],
+          gc2 = item('glow', e.glow)[3];
+        if (sc >= 0) SUIT.color.setHex(sc);
+        if (gc2 >= 0) ACC.color.setHex(gc2);
+        buildHat(e.hat);
+      }
       // 🎯 pickWord sorteia uma palavra: o tamanho depende do nível, evita repetir as últimas 30 e, às vezes (30%), traz uma palavra errada para rever.
       // 🛠️ MUDE AQUI: os intervalos [4, 7], [5, 8]... controlam o tamanho das palavras em cada nível.
       function pickWord(long) {
@@ -1158,8 +1469,14 @@
         let cx = (W - x.measureText(t).width) / 2;
         for (let i = 0; i < t.length; i++) {
           x.fillStyle = i < e.pos ? hex(e.col) : '#fff';
-          x.fillText(t[i], cx, H / 2 + 4);
+          x.fillText(t[i], cx, (e.k === 'chefe' ? 64 : H / 2) + 4);
           cx += x.measureText(t[i]).width;
+        }
+        if (e.k === 'chefe') {
+          x.fillStyle = '#400';
+          x.fillRect(20, 136, W - 40, 24);
+          x.fillStyle = '#ff3b3b';
+          x.fillRect(20, 136, (W - 40) * e.hp / e.maxhp, 24);
         }
         e.tex.needsUpdate = true;
       }
@@ -1167,18 +1484,19 @@
       function mkSign(g, e, w, h, y, z) {
         e.cv = document.createElement('canvas');
         e.cv.width = 512;
-        e.cv.height = 128;
+        e.cv.height = e.k === 'chefe' ? 176 : 128;
         e.tex = new THREE.CanvasTexture(e.cv);
         drawSign(e);
         mk(g, PLN, new THREE.MeshBasicMaterial({ map: e.tex, transparent: true }), 0, y, z, w, h, 1);
       }
       // 🎯 spawnT cria um desafio na posição z: "alvo" (barreira), "bau" (surpresa) ou "porta" (portal).
+      // 👾 O 7º desafio de cada mundo é o CHEFE (kind 'chefe') e o 8º é o portal.
       // 🛠️ MUDE AQUI: tgtN >= 8 faz o portal aparecer a cada 8 desafios. Que tal 4?
       function spawnT(z) {
         tgtN++;
-        const kind = tgtN >= 8 ? 'porta' : tgtN % 5 === 3 ? 'bau' : 'alvo',
+        const kind = tgtN >= 8 ? 'porta' : tgtN === 7 ? 'chefe' : tgtN % 5 === 3 ? 'bau' : 'alvo',
           w = mkW(pickWord(kind === 'porta')),
-          col = kind === 'bau' ? 0xffc83d : kind === 'porta' ? 0xff2bd6 : TC[w.t],
+          col = kind === 'bau' ? 0xffc83d : kind === 'porta' ? 0xff2bd6 : kind === 'chefe' ? 0xff3b3b : TC[w.t],
           g = new THREE.Group(),
           e = { k: kind, z, g, w, col, pos: 0, done: 0, open: 0 };
         g.position.z = z;
@@ -1195,6 +1513,20 @@
           e.star = mk(g, OCT, neon(0xffc83d), 0, 3.2, 0, .7, 1, .7);
           glowS(g, 0xffc83d, 8, 0, 1.8, 0, .8);
           mkSign(g, e, 6, 1.5, 5.4, .2);
+        } else if (kind === 'chefe') {
+          const m = std(0x1a0f14, 0xff3b3b, .7);
+          e.maxhp = e.hp = Math.min(4 + level, 8);
+          e.atk = 3;
+          e.t0 = 0;
+          e.core = mk(g, ICO, std(0x2a1018, 0xff2b4b, .9), 0, 6, 0, 3.4, 3.4, 3.4);
+          e.ring = mk(g, TOR, neon(0xff3b3b), 0, 6, 0, 5.6, 5.6, 2);
+          [-1, 1].forEach(s => {
+            bx(g, m, s * 5.4, 4, 0, 1, 8, 1.2);
+            cn(g, m, s * 5.4, 9.2, 0, .8, 2.4);
+            sp(g, neon(0xffffff), s * 1.1, 6.6, 3.3, .45);
+          });
+          glowS(g, 0xff3b3b, 24, 0, 6, 0, .5);
+          mkSign(g, e, 10, 3.4, 11.6, .5);
         } else {
           const m = std(0x14141f, 0xff2bd6, .9),
             w2 = std(0x0b0b16, 0x120a25, 1);
@@ -1219,6 +1551,7 @@
           door = e;
           lim = z - 2;
         }
+        if (kind === 'chefe') boss = e;
       }
       // 🪙 Moeda: um cilindro fino que gira. Quando o corredor encosta nela (veja update), ela é coletada.
       function coin(x, z) {
@@ -1283,9 +1616,9 @@
           return;
         }
         let tg = null;
-        for (const e of ents) if (e.k === 'bloco' && !e.bombed && e.z < P.z - .5 && P.z - e.z < 70 && (!tg || e.z > tg.z)) tg = e;
+        for (const e of ents) if ((e.k === 'bloco' || e.k === 'orb') && !e.bombed && e.z < P.z - .5 && P.z - e.z < 70 && (!tg || e.z > tg.z)) tg = e;
         if (!tg) {
-          toast('💣 Nenhum bloco à frente para explodir.', 1800);
+          toast('💣 Nenhum obstáculo à frente para explodir.', 1800);
           return;
         }
         bombs--;
@@ -1298,11 +1631,70 @@
         scene.add(g);
         shots.push({ g, e: tg, x0: P.x, z0: P.z, t: 0 });
       }
+      // 👾 orb: bola de energia lançada pelo chefe. Vai em direção ao corredor: troque de pista (1, 0 ou setas), pule ou destrua com ENTER (bomba).
+      function orb(x, z) {
+        const g = new THREE.Group();
+        sp(g, neon(0xff3b3b), 0, 0, 0, .8);
+        glowS(g, 0xff3b3b, 5, 0, 0, 0, .9);
+        g.position.set(x, 1.4, z);
+        scene.add(g);
+        ents.push({ k: 'orb', z, x, g });
+      }
+      // 👾 hitBoss roda quando você completa uma palavra na luta com o chefe: 1 de dano (2 se for rápido, em menos de 2,6 s!).
+      // A cada palavra ele recebe outra; quando a vida chega a 0, é derrotado e dá moedas, bombas e pontos.
+      function hitBoss(t) {
+        const w = t.w,
+          now = performance.now(),
+          fast = now - t.t0 < 2600,
+          dmg = fast ? 2 : 1;
+        learn.add(w.raw);
+        wrec(w.raw)[0]++;
+        dayRec().w++;
+        combo++;
+        score += Math.round(80 * (1 + Math.min(combo, 20) * .1));
+        holdWord = w.raw.toUpperCase();
+        holdCat = TYPE[w.t] + ' · chefe';
+        holdUntil = now + 260;
+        toast(`<b style="color:${hex(TC[w.t])}">${w.raw.toUpperCase()}</b> · ${TYPE[w.t]}<br>${w.m}`);
+        speak(w.raw + '. ' + TYPE[w.t] + '. ' + w.m);
+        burst(new THREE.Vector3(0, 6, t.z + 3), 0xff3b3b, 50, 11);
+        sfx('boom');
+        shake = .45;
+        t.hp -= dmg;
+        if (fast) ban('⚡ RÁPIDO! DANO DUPLO', 900);
+        if (t.hp <= 0) {
+          burst(new THREE.Vector3(0, 6, t.z), 0xffd24a, 160, 16);
+          sfx('door');
+          shake = .9;
+          score += 500;
+          coins += 30;
+          addBombs(2);
+          ban('CHEFE DERROTADO!<br><span style="font-size:.5em">+30 🪙 +2 💣</span>', 2400);
+          kill(t);
+          boss = null;
+        } else {
+          t.w = mkW(pickWord());
+          t.pos = 0;
+          t.t0 = now;
+          drawSign(t);
+        }
+        if (combo % 5 === 0) {
+          turbo = Math.max(turbo, 3.5);
+          addBombs(1);
+        }
+        hudKey = '';
+      }
       // 🏆 complete roda quando a palavra é digitada por inteiro: pontos, combo, explosão, mensagem com o significado e o efeito de cada tipo (alvo, baú ou portal).
       function complete(t) {
+        if (t.k === 'chefe') {
+          hitBoss(t);
+          return;
+        }
         t.done = 1;
         const w = t.w;
         learn.add(w.raw);
+        wrec(w.raw)[0]++;
+        dayRec().w++;
         holdWord = w.raw.toUpperCase();
         holdCat = TYPE[w.t] + (t.k === 'porta' ? ' · portal' : t.k === 'bau' ? ' · surpresa' : '');
         holdUntil = performance.now() + 260;
@@ -1342,6 +1734,7 @@
         stum = 1.2;
         shake = .9;
         rev.push([e.w.raw, e.w.t, e.w.m]);
+        wrec(e.w.raw)[1]++;
         burst(new THREE.Vector3(P.x, 2, e.z), 0xff3b3b, 50, 12);
         sfx('hit');
         toast(`Quase! <b>${e.w.raw.toUpperCase()}</b> · ${TYPE[e.w.t]}<br>${e.w.m}`);
@@ -1356,7 +1749,7 @@
         applyTheme(cur);
         const f = $('flash');
         f.style.transition = 'none';
-        f.style.opacity = .95;
+        f.style.opacity = calm ? 0 : .95;
         requestAnimationFrame(() => {
           f.style.transition = 'opacity .8s';
           f.style.opacity = 0;
@@ -1524,6 +1917,12 @@
       // ⌨️ Um único "ouvinte" de teclado cuida de tudo: se a tecla é de movimento, age; se é uma letra, tenta avançar a palavra ativa.
       addEventListener('keydown', e => {
         const k = e.key;
+        if (k === 'Escape') {
+          e.preventDefault();
+          if (started || menuOpen) toggleMenu();
+          return;
+        }
+        if (menuOpen) return;
         if (k.startsWith('Arrow') || k === ' ' || k === '1' || k === '0' || k === 'Enter') {
           e.preventDefault();
           if (!started) return;
@@ -1550,6 +1949,7 @@
           hudKey = '';
           if (t.pos >= t.w.n.length) complete(t);
         } else {
+          wrec(t.w.raw)[2]++;
           const w = $('word');
           w.classList.remove('bad');
           void w.offsetWidth;
@@ -1569,11 +1969,140 @@
         $('start').style.display = 'none';
         started = true;
         applyTheme(0, true);
+        ghostRef = SV.ghost && SV.ghost.length >= 30 ? SV.ghost.slice() : null;
+        $('ghost').style.display = ghostRef ? 'block' : 'none';
         toast('Digite a palavra que aparece no topo para destruir a barreira!', 5000);
       };
 
       /* =====================================================================
-         PARTE 11 — O LAÇO PRINCIPAL
+         PARTE 11 — O MENU: pausa, garagem, álbum, painel e opções
+         O menu é uma caixa HTML (#menu). Cada aba é uma função que MONTA TEXTO HTML
+         e o coloca na tela com innerHTML. Enquanto o menu está aberto, o jogo fica
+         pausado: o laço só chama update(dt) se menuOpen for falso.
+         ===================================================================== */
+      // VM = vocabulário indexado pela palavra (para achar o significado rápido).
+      const VM = {};
+      V.forEach(w => VM[w[0]] = w);
+      let tab = 'g';
+      function openMenu(t) {
+        menuOpen = true;
+        saveAll();
+        $('menu').style.display = 'flex';
+        render(t || tab);
+      }
+      function closeMenu() {
+        menuOpen = false;
+        $('menu').style.display = 'none';
+        if (document.activeElement) document.activeElement.blur();
+      }
+      function toggleMenu() {
+        menuOpen ? closeMenu() : openMenu();
+      }
+      // render escolhe qual aba desenhar. O objeto { g: shopHTML, ... } funciona como um "cardápio" de funções.
+      function render(t) {
+        tab = t;
+        $('mc').innerHTML = { g: shopHTML, a: albumHTML, p: panelHTML, o: optHTML }[t]();
+      }
+      // 🛒 shopHTML monta a garagem: para cada categoria do SHOP, um botão por item. onclick="buy(...)" liga o botão à função buy.
+      function shopHTML() {
+        let h = '<p>🪙 <b>' + coins + '</b> moedas. Colete moedas na corrida para comprar visuais!</p>';
+        for (const cat in SHOP) {
+          h += '<h3>' + SHOP[cat].n + '</h3><div class="grid">';
+          for (const it of SHOP[cat].it) {
+            const own = SV.own[cat].includes(it[0]),
+              on = SV.eq[cat] === it[0],
+              sw = cat === 'hat' ? '' : '<i class="sw" style="background:' + (it[3] < 0 ? 'linear-gradient(90deg,#f33,#fc3,#3d6,#3cf,#a4f)' : hex(it[3])) + '"></i>';
+            h += '<button class="it' + (on ? ' on' : '') + '" onclick="buy(\'' + cat + '\',\'' + it[0] + '\')">' + sw + it[1] + '<br><small>' + (on ? '✔ em uso' : own ? 'usar' : '🪙 ' + it[2]) + '</small></button>';
+          }
+          h += '</div>';
+        }
+        return h;
+      }
+      // buy compra (se houver moedas suficientes), equipa o item, guarda e redesenha a aba.
+      function buy(cat, id) {
+        const it = item(cat, id);
+        if (!SV.own[cat].includes(id)) {
+          if (coins < it[2]) {
+            toast('Faltam ' + (it[2] - coins) + ' moedas para comprar ' + it[1] + '.', 2500);
+            return;
+          }
+          coins -= it[2];
+          SV.own[cat].push(id);
+          sfx('surp');
+        }
+        SV.eq[cat] = id;
+        applyLook();
+        saveAll();
+        render('g');
+      }
+      // 📖 Álbum: lista todas as palavras; as já digitadas mostram tipo e significado, as outras ficam com cadeado.
+      function albumHTML() {
+        const all = V.slice().sort((a, b) => a[0].localeCompare(b[0], 'pt')),
+          got = w => SV.w[w[0]] && SV.w[w[0]][0] > 0,
+          n = all.filter(got).length;
+        return '<h3>📖 ' + n + ' de ' + V.length + ' palavras descobertas</h3>' + all.map(w => got(w) ? '<div class="al"><span class="w" style="background:' + hex(TC[w[1]]) + '">' + w[0] + '</span> <i>' + TYPE[w[1]] + '</i> — ' + w[2] + ' <small>(' + SV.w[w[0]][0] + '×)</small></div>' : '<div class="al lk">🔒 ' + '•'.repeat(norm(w[0]).length) + '</div>').join('');
+      }
+      // 📊 Painel para acompanhar a evolução: recorde, gráfico dos últimos 7 dias e as palavras que mais precisam de treino.
+      function panelHTML() {
+        const days = [];
+        for (let i = 6; i >= 0; i--) {
+          const d = new Date(Date.now() - i * 864e5).toLocaleDateString('sv-SE');
+          days.push([
+            d.slice(5).split('-').reverse().join('/'),
+          (SV.day[d] || { b: 0 }).b
+          ]);
+        }
+        const mx = Math.max(rec, 30),
+          tot = Object.values(SV.w).reduce((a, x) => a + x[0], 0),
+          bad = x => x[1] * 3 + x[2];
+        const bars = days.map(d => '<div class="bar"><b>' + (d[1] || '') + '</b><span style="height:' + Math.round(d[1] / mx * 100) + '%"></span><small>' + d[0] + '</small></div>').join('');
+        const miss = Object.entries(SV.w).filter(([k, x]) => bad(x) > 0 && VM[k]).sort((a, b) => bad(b[1]) - bad(a[1])).slice(0, 8).map(([k, x]) => '<div class="al"><span class="w" style="background:' + hex(TC[VM[k][1]]) + '">' + k + '</span> ' + VM[k][2] + ' <small>(' + x[1] + ' tropeços, ' + x[2] + ' letras erradas)</small></div>').join('') || '<p>Nada por enquanto. Continue jogando!</p>';
+        const g = SV.ghost ? '🏁 melhor corrida gravada: ' + SV.ghost[SV.ghost.length - 1] + ' m em ' + SV.ghost.length + ' s' : '🏁 ainda sem corrida gravada (jogue pelo menos 30 s)';
+        return '<p>🏆 recorde: <b>' + rec + '</b> palavras/min · ⌨️ palavras certas: <b>' + tot + '</b> · ⏱️ tempo jogado: <b>' + Math.round(SV.time / 60) + ' min</b></p><p>' + g + '</p><h3>Palavras por minuto (últimos 7 dias)</h3><div class="bars">' + bars + '</div><h3>Palavras que mais precisam de treino</h3>' + miss;
+      }
+      // ⚙️ Opções: modo calmo (sem clarões e tremor de câmera, mais lento, letras maiores) e apagar o progresso.
+      function optHTML() {
+        return '<h3>⚙️ Opções</h3><p><button class="it' + (calm ? ' on' : '') + '" onclick="toggleCalm()">🌿 Modo calmo: ' + (calm ? 'LIGADO' : 'desligado') + '</button><br><small>Sem clarões nem tremor de câmera, velocidade menor e letras maiores.</small></p><p><small>Esc abre e fecha este menu. ENTER lança uma bomba.</small></p><p><button class="it" onclick="resetAll()">🗑️ Apagar todo o progresso</button></p>';
+      }
+      function applyCalm() {
+        document.body.classList.toggle('calm', calm);
+      }
+      function toggleCalm() {
+        calm = !calm;
+        applyCalm();
+        saveAll();
+        render('o');
+      }
+      function resetAll() {
+        if (confirm('Apagar moedas, visuais, álbum, recorde e fantasma? Isso não pode ser desfeito.')) {
+          wiped = true;
+          try {
+            localStorage.removeItem('pv_save');
+            localStorage.removeItem('pv_rec');
+          } catch (e) {}
+          location.reload();
+        }
+      }
+      // Botões do menu: abas, continuar, pausa (⏸) e garagem da tela inicial. O jogo também pausa sozinho se você trocar de aba do navegador.
+      $('tg').onclick = () => render('g');
+      $('ta').onclick = () => render('a');
+      $('tp').onclick = () => render('p');
+      $('to').onclick = () => render('o');
+      $('mclose').onclick = closeMenu;
+      $('bp').onclick = function() {
+        toggleMenu();
+        this.blur();
+      };
+      $('bg').onclick = () => openMenu('g');
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+          saveAll();
+          if (started && !menuOpen) openMenu();
+        }
+      });
+
+      /* =====================================================================
+         PARTE 12 — O LAÇO PRINCIPAL
          update(dt) roda a cada quadro. dt = segundos desde o quadro anterior;
          multiplicar por dt faz o jogo andar igual em computadores rápidos e lentos.
          ===================================================================== */
@@ -1588,6 +2117,9 @@
       function update(dt) {
         const now = performance.now();
         T += dt;
+        // ⏱️ Soma o tempo jogado e, a cada segundo, grava a distância percorrida (trace): é a gravação da corrida para o fantasma.
+        SV.time += dt;
+        if (T >= trace.length) trace.push(Math.round(-P.z));
         // 🏗️ Gera cenário e desafios à frente do jogador (135 metros), e só até o limite lim (o portal fechado bloqueia o caminho).
         while (sz > P.z - 135 && sz > lim) {
           spawnRow(sz);
@@ -1597,12 +2129,15 @@
           spawnT(tz);
           tz -= 48 + speed * 1.6 + R() * 12;
         }
+        // 🛑 Bloqueios: um portal fechado ou um chefe vivo param o corredor à frente deles (o mais próximo manda).
+        const blk = [door && door.open < .6 ? door : null, boss].filter(Boolean).sort((a, b) => b.z - a.z)[0],
+          stopD = blk && blk.k === 'chefe' ? 14 : 3;
         // 🚀 Velocidade desejada = base do nível + bônus pela digitação (wpm), multiplicada por turbo, tropeço, câmera lenta e portal.
         // 🛠️ MUDE AQUI: 15 é a velocidade inicial; 0.2 é quanto cada palavra por minuto acelera.
         const base = 15 + level * 1.6;
         let df = 1;
-        if (door && door.open < .6) df = clamp((P.z - (door.z + 3)) / 30, .12, 1);
-        const tg = (base + clamp(wpm * .2, 0, 15)) * (turbo > 0 ? 1.5 : 1) * (stum > 0 ? .35 : 1) * (slow > 0 ? .55 : 1) * df;
+        if (blk) df = clamp((P.z - (blk.z + stopD)) / 30, .12, 1);
+        const tg = (base + clamp(wpm * .2, 0, 15)) * (turbo > 0 ? 1.5 : 1) * (stum > 0 ? .35 : 1) * (slow > 0 ? .55 : 1) * df * (calm ? .75 : 1);
         // lerp faz a velocidade real "deslizar" até a desejada, sem trancos.
         speed = lerp(speed, tg, clamp(dt * 2.5, 0, 1));
         turbo -= dt;
@@ -1610,7 +2145,7 @@
         stum -= dt;
         // 🏃 Movimento: distância = velocidade × tempo. Diante de um portal fechado, o corredor para.
         P.z -= speed * dt;
-        if (door && door.open < .6) P.z = Math.max(P.z, door.z + 3);
+        if (blk) P.z = Math.max(P.z, blk.z + stopD);
         score += speed * dt * .4;
         // ↔️ Troca de faixa suave: x desliza até a faixa escolhida.
         P.x = lerp(P.x, LN[P.lane], clamp(dt * 14, 0, 1));
@@ -1641,6 +2176,34 @@
         blob.scale.setScalar(.8 * clamp(1 - P.y * .12, .4, 1));
         rl.position.set(P.x, 3, P.z + 1);
         rl.color.lerp(tAcc, .05);
+        // 🌈 Itens arco-íris mudam de cor com o tempo.
+        if (SV.eq.suit === 'arcoiris') SUIT.color.setHSL((T * .15) % 1, .65, .38);
+        if (SV.eq.glow === 'arcoiris') ACC.color.setHSL((T * .4) % 1, 1, .6);
+        // ✨ Trilha de luz: a cada 0,035 s solta um cubinho colorido atrás do corredor (usa a lista de partículas).
+        if (SV.eq.trail !== 'nada') {
+          trailT += dt;
+          if (trailT > .035) {
+            trailT = 0;
+            const tc = item('trail', SV.eq.trail)[3],
+              m = new THREE.Mesh(BOX, neon(tc < 0 ? RB[(T * 10 | 0) % 7] : tc));
+            m.position.set(P.x + (R() - .5) * .5, .8 + P.y, P.z + .8);
+            m.scale.setScalar(.3);
+            parts.push({ m, l: .5, v: new THREE.Vector3((R() - .5) * 1.5, .8, speed * .3) });
+            scene.add(m);
+          }
+        }
+        // 👻 Fantasma: mostra onde estava a sua melhor corrida neste mesmo segundo e diz quantos metros você está na frente ou atrás.
+        if (ghostRef) {
+          const gd = ghostAt(ghostRef, T),
+            gz = -gd,
+            gs = Math.sin(P.ph),
+            dm = Math.round(-P.z - gd);
+          gh.visible = Math.abs(gz - P.z) < 150;
+          gh.position.set(0, 0, gz);
+          gLg[0].rotation.x = gs;
+          gLg[1].rotation.x = -gs;
+          setTxt('ghost', dm >= 0 ? '👻 você está ' + dm + ' m na frente do fantasma' : '👻 o fantasma está ' + (-dm) + ' m na frente');
+        }
         // 🛣️ Pista e chão acompanham o jogador; mexer no offset da textura simula o chão passando.
         road.position.z = ground.position.z = P.z;
         roadT.offset.y = -(P.z / 10);
@@ -1663,9 +2226,28 @@
         for (const e of ents) {
           if (!e.w || e.done) continue;
           const d = P.z - e.z;
-          if (d > -1 && d < 110 && d < bd) {
+          if (d > -1 && d < (e.k === 'chefe' ? 45 : 110) && d < bd) {
             bd = d;
             curT = e;
+          }
+        }
+        // 👾 Chefe: gira, avisa quando você se aproxima e, perto do corredor, lança uma orb a cada poucos segundos.
+        if (boss) {
+          boss.core.rotation.y += dt * .8;
+          boss.core.rotation.x += dt * .4;
+          boss.ring.rotation.z += dt * 1.5;
+          if (!boss.warned && P.z - boss.z < 100) {
+            boss.warned = 1;
+            ban('⚠️ CHEFE!<br><span style="font-size:.5em">digite as palavras para derrotá-lo</span>', 2400);
+            sfx('hit');
+          }
+          if (!boss.t0 && P.z - boss.z < 18) boss.t0 = now;
+          if (P.z - boss.z < 45) {
+            boss.atk -= dt;
+            if (boss.atk <= 0) {
+              boss.atk = Math.max(3, 5 - level * .3);
+              orb(R() < .65 ? LN[P.lane] : LN[R() * 3 | 0], boss.z + 2);
+            }
           }
         }
         // 🔍 Percorre os objetos: coleta moedas, bate em blocos, falha em alvos, gira baús, abre portais.
@@ -1686,6 +2268,18 @@
             if (!e.bombed && Math.abs(e.z - P.z) < 1.3 && Math.abs(e.x - P.x) < 1.6 && P.y < e.h - .1) {
               stum = 1;
               shake = .6;
+              combo = 0;
+              burst(new THREE.Vector3(e.x, 1, e.z), 0xff3b3b, 30, 9);
+              sfx('hit');
+              kill(e);
+              continue;
+            }
+          } else if (e.k === 'orb') {
+            e.z += (calm ? 11 : 15) * dt;
+            e.g.position.z = e.z;
+            if (!e.bombed && Math.abs(e.z - P.z) < 1.2 && Math.abs(e.x - P.x) < 1.6 && P.y < 2.4) {
+              stum = .8;
+              shake = .5;
               combo = 0;
               burst(new THREE.Vector3(e.x, 1, e.z), 0xff3b3b, 30, 9);
               sfx('hit');
@@ -1779,7 +2373,7 @@
           lp[q + 5] = LZ[i] + len;
         }
         lg.attributes.position.needsUpdate = true;
-        lm.opacity = clamp((speed - 14) / 30, 0, .55);
+        lm.opacity = clamp((speed - 14) / 30, 0, .55) * (calm ? .3 : 1);
         const vy = TH[cur % 4].vy;
         for (let i = 0; i < NA; i++) {
           const q = i * 3;
@@ -1803,7 +2397,8 @@
           rec = Math.round(wpm);
           try {
             localStorage.setItem('pv_rec', rec);
-          } catch (e) {} if (old > 0 && now - lastCel > 8000) {
+          } catch (e) {}
+          if (old > 0 && now - lastCel > 8000) {
             lastCel = now;
             turbo = Math.max(turbo, 3);
             ban('🏆 NOVO RECORDE<br><span style="font-size:.5em">' + rec + ' palavras por minuto</span>', 2600);
@@ -1811,14 +2406,18 @@
           }
         }
         // 🎥 Câmera: o campo de visão (fov) abre com a velocidade; ela segue atrás do corredor e treme (shake) nos impactos.
-        const fov = 62 + clamp((speed - 14) / 26, 0, 1) * 22 + (turbo > 0 ? 10 : 0);
+        const fov = 62 + clamp((speed - 14) / 26, 0, 1) * (calm ? 9 : 22) + (turbo > 0 ? (calm ? 3 : 10) : 0);
         cam.fov = lerp(cam.fov, fov, .08);
         cam.updateProjectionMatrix();
-        const cx = P.x * .55;
-        cam.position.set(cx + (R() - .5) * shake, 4.4 + (R() - .5) * shake + Math.sin(P.ph * 2) * .04, P.z + 9);
+        const cx = P.x * .55,
+          sh = calm ? 0 : shake;
+        cam.position.set(cx + (R() - .5) * sh, 4.4 + (R() - .5) * sh + Math.sin(P.ph * 2) * .04, P.z + 9);
         cam.lookAt(P.x * .4, 2.4, P.z - 14);
         cam.rotateZ((LN[P.lane] - P.x) * .015);
         shake *= Math.pow(.02, dt);
+        // 📅 Guarda o melhor ritmo de hoje (para o gráfico do painel).
+        const dr = dayRec();
+        if (ks.length >= 12 && wpm > dr.b) dr.b = Math.round(wpm);
         // 📊 Atualiza o painel (HUD): pontos, moedas, velocidade, recorde, combo e a palavra ativa.
         setTxt('score', Math.floor(score).toLocaleString('pt-BR'));
         setTxt('meta', '🪙 ' + coins + '   💣 ' + bombs + '   📖 ' + learn.size + ' palavras');
@@ -1849,12 +2448,14 @@
       // requestAnimationFrame chama a função loop a cada quadro (~60 vezes por segundo).
       cam.position.set(0, 4.4, 9);
       applyTheme(0, true);
+      applyLook();
+      applyCalm();
       let lastT = performance.now();
       (function loop(t) {
         requestAnimationFrame(loop);
         const dt = Math.min((t - lastT) / 1000 || 0, .05);
         lastT = t;
-        if (started) update(dt);
+        if (started && !menuOpen) update(dt);
         ren.render(scene, cam);
       })(performance.now());
     </script>
